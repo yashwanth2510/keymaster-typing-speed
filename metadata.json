@@ -1,0 +1,6 @@
+{
+  "name": "KeyMaster - Typing Speed Test & Practice Studio",
+  "description": "Test typing speed, learn touch typing with interactive tutorials and visual keyboard, play typing arcade games, and generate custom practice texts with AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
