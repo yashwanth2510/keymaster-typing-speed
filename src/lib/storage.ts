@@ -266,10 +266,28 @@ export function getActivityDays(): string[] {
   return Array.isArray(stored) ? stored : [];
 }
 
+// Format a Date as a local (browser timezone) yyyy-mm-dd string so streak days
+// match the user's own calendar instead of UTC.
+export function toLocalDateStr(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
 // Reconstructs streak automatically from cookies, activity dates, and test history
 export function getStreak(): StreakInfo {
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
+
+  // Last 400 consecutive local calendar days, today first
+  const daySequence: string[] = [];
+  {
+    const cursor = new Date();
+    for (let i = 0; i < 400; i++) {
+      daySequence.push(toLocalDateStr(cursor));
+      cursor.setDate(cursor.getDate() - 1);
+    }
+  }
+  const yesterday = daySequence[1];
 
   const dateSet = new Set<string>();
 
@@ -279,12 +297,12 @@ export function getStreak(): StreakInfo {
     if (typeof d === 'string' && d.length === 10) dateSet.add(d);
   });
 
-  // 2. Extract dates from test history (timestamps)
+  // 2. Extract dates from test history (timestamps, converted to local time)
   const history = getTestHistory();
   history.forEach(item => {
     if (item.timestamp) {
       try {
-        const d = new Date(item.timestamp).toISOString().split('T')[0];
+        const d = toLocalDateStr(new Date(item.timestamp));
         if (d) dateSet.add(d);
       } catch {}
     }
@@ -303,40 +321,18 @@ export function getStreak(): StreakInfo {
   let count = 0;
   let lastActiveDate = '';
 
-  if (hasToday) {
-    count = 1;
-    lastActiveDate = today;
-    // Check backwards from yesterday
-    let checkTime = Date.now() - 86400000;
-    while (true) {
-      const prevDate = new Date(checkTime).toISOString().split('T')[0];
-      if (dateSet.has(prevDate)) {
-        count++;
-        checkTime -= 86400000;
-      } else {
-        break;
-      }
+  if (hasToday || hasYesterday) {
+    // Count consecutive active days backwards from today (or yesterday if not
+    // practiced yet today — the streak is still alive until the day ends).
+    const startIndex = hasToday ? 0 : 1;
+    for (let i = startIndex; i < daySequence.length; i++) {
+      if (dateSet.has(daySequence[i])) count++;
+      else break;
     }
-  } else if (hasYesterday) {
-    // User hasn't practiced yet today, but did yesterday -> streak is still alive!
-    count = 1;
-    lastActiveDate = yesterday;
-    let checkTime = Date.now() - (86400000 * 2);
-    while (true) {
-      const prevDate = new Date(checkTime).toISOString().split('T')[0];
-      if (dateSet.has(prevDate)) {
-        count++;
-        checkTime -= 86400000;
-      } else {
-        break;
-      }
-    }
-  } else {
+    lastActiveDate = hasToday ? today : yesterday;
+  } else if (sortedDates.length > 0) {
     // Neither today nor yesterday
-    count = 0;
-    if (sortedDates.length > 0) {
-      lastActiveDate = sortedDates[sortedDates.length - 1];
-    }
+    lastActiveDate = sortedDates[sortedDates.length - 1];
   }
 
   // If user had a recorded streak count for today or yesterday, don't drop below it
@@ -360,7 +356,7 @@ export function getStreak(): StreakInfo {
 
 // Records daily activity into cookies and history, updating streak
 export function recordDailyActivity(): StreakInfo {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateStr(new Date());
   const days = getActivityDays();
   if (!days.includes(today)) {
     days.push(today);

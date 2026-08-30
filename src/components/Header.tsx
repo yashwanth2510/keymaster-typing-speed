@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Keyboard, Zap, BookOpen, Gamepad2, BarChart3, Volume2, VolumeX, Flame, Headphones, Trees, Moon, Volume1, Coffee, CheckCircle2, Droplet, CloudRain, Waves, ExternalLink } from 'lucide-react';
 import { TestSettings } from '../types';
-import { StreakInfo } from '../lib/storage';
+import { StreakInfo, toLocalDateStr } from '../lib/storage';
 import { getDecryptedPortfolioUrl, openCreatorPortfolio } from '../lib/portfolio';
 
 interface HeaderProps {
@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   // Compute last 7 days for the streak activity tracker
   const recentDays = Array.from({ length: 7 }, (_, i) => {
     const dateObj = new Date(Date.now() - (6 - i) * 86400000);
-    const dateStr = dateObj.toISOString().split('T')[0];
+    const dateStr = toLocalDateStr(dateObj);
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dayLabel = dayNames[dateObj.getDay()];
     const dayNum = dateObj.getDate();
