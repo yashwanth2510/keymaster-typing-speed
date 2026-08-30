@@ -60,48 +60,60 @@ async function startServer() {
     // Use current Gemini models (gemini-3.7-flash, gemini-3.6-flash, gemini-2.5-flash)
     // Deprecated models like gemini-2.0-flash are strictly removed.
     const modelsToTry = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
+    const PER_MODEL_TIMEOUT_MS = 12000;
 
-    const attempts = await Promise.allSettled(
-      modelsToTry.map(async (model) => {
-        try {
-          const response = await ai.models.generateContent({
-            model,
-            contents: prompt,
-            config: config?.responseMimeType
-              ? { responseMimeType: config.responseMimeType }
-              : undefined,
-          });
-          const text = response.text?.trim().replace(/^["']|["']$/g, '');
-          if (!text || text.length <= 5) {
-            return { ok: false as const, text: null as string | null };
+    // Race all candidate models in parallel and resolve as soon as the first one
+    // returns usable text. Hard per-model timeout guarantees a bounded response.
+    return await new Promise<string | null>((resolve) => {
+      let pending = modelsToTry.length;
+      let settled = false;
+
+      const finish = (text: string | null) => {
+        if (settled) return;
+        settled = true;
+        if (text) cacheSet(prompt, text);
+        resolve(text);
+      };
+
+      for (const model of modelsToTry) {
+        (async () => {
+          const timer = setTimeout(() => {
+            pending -= 1;
+            if (pending === 0) finish(null);
+          }, PER_MODEL_TIMEOUT_MS);
+
+          try {
+            const response = await ai.models.generateContent({
+              model,
+              contents: prompt,
+              config: config?.responseMimeType
+                ? { responseMimeType: config.responseMimeType }
+                : undefined,
+            });
+            const text = response.text?.trim().replace(/^["']|["']$/g, '');
+            if (text && text.length > 5) {
+              finish(text);
+              return;
+            }
+          } catch (err: any) {
+            const errMsg = err?.message || String(err);
+            if (
+              errMsg.includes('429') ||
+              errMsg.includes('RESOURCE_EXHAUSTED') ||
+              errMsg.includes('503') ||
+              errMsg.includes('UNAVAILABLE')
+            ) {
+              console.warn(`[Gemini API ${model}] Rate limited or unavailable, continuing...`);
+            } else {
+              console.warn(`[Gemini API ${model}] Error:`, errMsg);
+            }
           }
-          return { ok: true as const, text };
-        } catch (err: any) {
-          const errMsg = err?.message || String(err);
-          if (
-            errMsg.includes('429') ||
-            errMsg.includes('RESOURCE_EXHAUSTED') ||
-            errMsg.includes('503') ||
-            errMsg.includes('UNAVAILABLE')
-          ) {
-            console.warn(`[Gemini API ${model}] Rate limited or unavailable, continuing...`);
-          } else {
-            console.warn(`[Gemini API ${model}] Error:`, errMsg);
-          }
-          return { ok: false as const, text: null as string | null };
-        }
-      })
-    );
-
-    const winner = attempts
-      .filter((r): r is PromiseFulfilledResult<{ ok: true; text: string }> =>
-        r.status === 'fulfilled' && r.value.ok
-      )
-      .map((r) => r.value.text)
-      [0] || null;
-
-    if (winner) cacheSet(prompt, winner);
-    return winner;
+          clearTimeout(timer);
+          pending -= 1;
+          if (pending === 0) finish(null);
+        })();
+      }
+    });
   }
 
   // API Route: Health Check

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Timer, FileText, Quote, Code, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react';
 import { TestMode, TimeOption, WordOption, TestSettings } from '../../types';
 
@@ -22,11 +22,23 @@ export const TestControls: React.FC<TestControlsProps> = ({
   const [customTopic, setCustomTopic] = useState('');
   const [showAIPrompt, setShowAIPrompt] = useState(false);
 
+  const submitPendingRef = useRef(false);
+
+  // Keep the topic window open while the AI passage is generating, and close it
+  // only once a submitted request finishes (success or fallback), so it never
+  // vanishes mid-generation and forces a tab switch to get it back.
+  useEffect(() => {
+    if (submitPendingRef.current && !isLoadingAIText) {
+      setShowAIPrompt(false);
+      submitPendingRef.current = false;
+    }
+  }, [isLoadingAIText]);
+
   const handleAISubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customTopic.trim()) return;
+    submitPendingRef.current = true;
     onGenerateAIText(customTopic.trim());
-    setShowAIPrompt(false);
   };
 
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TestControls } from './TestControls';
 import { ResultCard } from './ResultCard';
 import { Keyboard } from '../Keyboard';
@@ -93,7 +93,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         setIsLoadingAIText(true);
         const slowTimer = setTimeout(() => {
           if (currentReqId.current === reqId) setIsLoadingAIText(false);
-        }, 9000);
+        }, 15000);
         try {
           const res = await fetch('/api/weak-key-drill', {
             method: 'POST',
@@ -125,7 +125,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       setIsLoadingAIText(true);
       const slowTimer = setTimeout(() => {
         if (currentReqId.current === reqId) setIsLoadingAIText(false);
-      }, 9000);
+      }, 15000);
       try {
         const res = await fetch('/api/generate-text', {
           method: 'POST',
@@ -177,7 +177,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     setTimeLeft(settings.timeLimit);
     const slowTimer = setTimeout(() => {
       if (currentReqId.current === reqId) setIsLoadingAIText(false);
-    }, 9000);
+    }, 15000);
     try {
       const res = await fetch('/api/generate-text', {
         method: 'POST',
@@ -504,11 +504,12 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           </div>
 
           {/* Typing Passage Display */}
-          {isLoadingAIText ? (
-            <div className="py-16 text-center text-[#DA6A45] animate-pulse font-mono text-lg bg-[#DA6A45]/10 rounded-2xl border border-[#DA6A45]/30 backdrop-blur-md">
-              ✨ Crafting personalized Key Master practice passage...
-            </div>
-          ) : (
+          <div className="flex flex-col gap-2">
+            {isLoadingAIText && (
+              <div className="self-center text-[#DA6A45] animate-pulse font-mono text-xs bg-[#DA6A45]/10 rounded-full px-3 py-1 border border-[#DA6A45]/30 backdrop-blur-md">
+                âœ¨ Preparing an AI passage â€” you can start typing now
+              </div>
+            )}
             <div className="relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner">
               {targetText.split('').map((char, index) => {
                 const typed = userInput[index];
@@ -534,7 +535,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
                 );
               })}
             </div>
-          )}
+          </div>
 
           {/* Bottom Hint */}
           <div className="flex items-center justify-between text-xs text-[#78726A] font-mono pt-2 border-t border-[#E5DFD5]">
