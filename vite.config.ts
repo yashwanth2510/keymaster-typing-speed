@@ -6,6 +6,11 @@ import {defineConfig} from 'vite';
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      // Bundles like three, recharts and canvas-confetti legitimately exceed the
+      // default 500 kB threshold in this single-page app. Raise the warning limit.
+      chunkSizeWarningLimit: 1500,
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
