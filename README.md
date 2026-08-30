@@ -1,93 +1,47 @@
 <div align="center">
-
-# ⌨️ KeyMaster — Typing Speed Test & Practice Studio
-
-Test your typing speed, learn touch typing with interactive tutorials and a visual
-keyboard, play typing arcade games, and generate custom practice texts with AI.
-
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
 </div>
 
-## ✨ Features
+# KeyMaster — Typing Speed Test & Practice Studio
 
-- **Speed Test** — Measure your Words Per Minute (WPM), accuracy, and error rate
-  across word/time/difficulty modes.
-- **Touch Typing Tutorials** — Interactive lessons paired with a visual on-screen
-  keyboard to learn proper finger placement.
-- **Typing Arcade Games** — Fun gamified practice (Meteor, Racer, and more) to keep
-  your fingers entertained.
-- **AI-Generated Practice Text** — Uses the **Gemini API** to generate custom practice
-  passages tailored to your target words and weak keys.
-- **Stats Hub** — Track your progress and typing history with charts.
-- **Sound & Retro Vibes** — Optional keystroke sounds and a Virtual Retro Computer theme.
+A typing speed test with AI-powered practice passages, weak-key drills, and AI coaching, powered by the Gemini API.
 
-## 🛠 Tech Stack
+## Run Locally
 
-- [React 19](https://react.dev/)+ [TypeScript](https://www.typescriptlang.org/)
-- [Vite](https://vitejs.dev/) + [Tailwind CSS v4](https://tailwindcss.com/)
-- [Express](https://expressjs.com/) (server) + [Three.js](https://threejs.org/) (3D arcade)
-- [google-genai](https://github.com/googleapis/python-genai) for Gemini-powered text generation
-- Bundled with [esbuild](https://esbuild.github.io/)
-
-## 🚀 Getting Started
-
-**Prerequisites:** [Node.js](https://nodejs.org/) (v18+) and optionally [Bun](https://bun.sh/).
+**Prerequisites:**  Node.js
 
 1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in `.env.local` to your Gemini API key:
+   `Get-Content .env.example | Set-Content .env.local` (or copy manually)
+   Then edit `.env.local` and replace `MY_GEMINI_API_KEY`.
+3. Run the app:
+   `npm run dev`
 
-   ```sh
-   npm install
-   ```
+The app runs at http://localhost:3000.
 
-2. Set your Gemini API key in a `.env.local` file:
+## Deploy (GitHub repo + Render)
 
-   ```
-   GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
-   ```
+**Important:** GitHub Pages cannot run the AI features. This app needs a Node server
+for the `/api/*` Gemini endpoints. Deploy the repo to **Render** (free tier) instead,
+which runs a real Node backend. Your code stays on GitHub.
 
-3. Run the app in development:
+1. Push this folder to a new GitHub repository:
+   - `git init`
+   - `git add .`
+   - `git commit -m "initial commit"`
+   - `git branch -M main`
+   - `git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git`
+   - `git push -u origin main`
+2. Go to https://render.com and sign up (free).
+3. Click **New > Blueprint** and connect your GitHub repo.
+   Render detects `render.yaml` automatically and creates the web service.
+4. In the Render dashboard, open the service → **Environment**, add:
+   - Key: `GEMINI_API_KEY` — value: your Gemini API key
+   (get one free at https://aistudio.google.com/apikey)
+5. Render builds and deploys automatically. Every future `git push` redeploys.
+6. Your app is live at the URL Render gives you (e.g. `https://keymaster-typing-studio.onrender.com`).
+   The AI features only work on that Node-hosted URL, not on a static github.io page.
 
-   ```sh
-   npm run dev
-   ```
-
-   Open the printed URL (default `http://localhost:3000`) in your browser.
-
-## 📦 Scripts
-
-| Script            | Description                                        |
-| ----------------- | -------------------------------------------------- |
-| `npm run dev`     | Start the dev server with hot reload (`tsx server.ts`) |
-| `npm run build`   | Build the client and bundle the server             |
-| `npm start`       | Run the bundled production server                  |
-| `npm run preview` | Preview the production build                       |
-| `npm run lint`    | Type-check the project (`tsc --noEmit`)            |
-| `npm run clean`   | Remove build artifacts                             |
-
-## 📁 Project Structure
-
-```
-├── src/                    # React frontend
-│   ├── components/         # UI components
-│   │   ├── SpeedTest/      # Typing speed test
-│   │   ├── Tutorials/      # Touch typing lessons
-│   │   ├── Arcade/         # Typing arcade games (Meteor, Racer)
-│   │   └── StatsHub/       # Progress & stats
-│   ├── lib/                # Sound, storage, and data helpers
-│   ├── App.tsx
-│   └── main.tsx
-├── server.ts               # Express server + Gemini AI integration
-├── index.html
-├── vite.config.ts
-└── package.json
-```
-
-## 🔒 Environment Variables
-
-Create a `.env.local` (it is git-ignored) with:
-
-- `GEMINI_API_KEY` — **Required** for generating AI practice texts.
-- `APP_URL` — The URL where the app is hosted (used for self-referential links).
-
-See [`.env.example`](.env.example) for details.
-
-Built with ❤️ for fast typists.
+Deploys elsewhere (Railway, Cloud Run, Fly.io) also work the same way — `npm run build`, then
+`NODE_ENV=production node dist/server.cjs`, with `GEMINI_API_KEY` set as an environment variable.

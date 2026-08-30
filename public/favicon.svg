@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="terracottaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#DA6A45" />
+      <stop offset="100%" stop-color="#C85A37" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#terracottaGrad)" />
+  <g transform="translate(14, 14) scale(1.5)" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect width="20" height="16" x="2" y="4" rx="2.5" />
+    <path d="M10 8h.01" />
+    <path d="M12 12h.01" />
+    <path d="M14 8h.01" />
+    <path d="M16 12h.01" />
+    <path d="M18 8h.01" />
+    <path d="M6 8h.01" />
+    <path d="M7 16h10" />
+    <path d="M8 12h.01" />
+  </g>
+</svg>

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Keyboard, Zap, BookOpen, Gamepad2, BarChart3, Volume2, VolumeX, Flame, Headphones, Trees, Moon, Volume1, Coffee, CheckCircle2, Droplet, CloudRain, Waves } from 'lucide-react';
+import { Keyboard, Zap, BookOpen, Gamepad2, BarChart3, Volume2, VolumeX, Flame, Headphones, Trees, Moon, Volume1, Coffee, CheckCircle2, Droplet, CloudRain, Waves, ExternalLink } from 'lucide-react';
 import { TestSettings } from '../types';
 import { StreakInfo } from '../lib/storage';
+import { getDecryptedPortfolioUrl, openCreatorPortfolio } from '../lib/portfolio';
 
 interface HeaderProps {
   activeTab: 'test' | 'tutorials' | 'arcade' | 'stats';
@@ -34,19 +35,44 @@ export const Header: React.FC<HeaderProps> = ({
     return { date: dateStr, dayLabel, dayNum, isActive };
   });
 
+  const portfolioUrl = getDecryptedPortfolioUrl();
+
   return (
     <header className="w-full bg-[#FAF8F5]/90 border-b border-[#E5DFD5] backdrop-blur-md sticky top-0 z-50 shadow-[0_2px_12px_0_rgba(60,45,30,0.04)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between gap-6">
         {/* Left: Brand & Logo */}
-        <div 
-          onClick={() => setActiveTab('test')} 
-          className="flex items-center gap-3 cursor-pointer group select-none shrink-0"
-        >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#DA6A45] to-[#C85A37] flex items-center justify-center text-white shadow-xs group-hover:shadow-md group-hover:shadow-[#DA6A45]/20 group-hover:scale-105 transition-all">
+        <div className="flex items-center gap-3 select-none shrink-0">
+          <button
+            id="brand-home-btn"
+            type="button"
+            onClick={() => setActiveTab('test')}
+            className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#DA6A45] to-[#C85A37] flex items-center justify-center text-white shadow-xs hover:shadow-md hover:shadow-[#DA6A45]/20 hover:scale-105 transition-all cursor-pointer border-none"
+            title="KeyMaster Speed Test"
+            aria-label="KeyMaster Home"
+          >
             <Keyboard className="w-5 h-5" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-[#2C2825] tracking-tight group-hover:text-[#DA6A45] transition-colors">KeyMaster</span>
+          </button>
+          <div className="flex flex-col justify-center">
+            <button
+              id="brand-home-title"
+              type="button"
+              onClick={() => setActiveTab('test')}
+              className="text-left text-lg font-bold text-[#2C2825] tracking-tight hover:text-[#DA6A45] transition-colors leading-tight cursor-pointer bg-transparent border-none p-0"
+            >
+              KeyMaster
+            </button>
+            <a
+              id="creator-portfolio-header-link"
+              href={portfolioUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={openCreatorPortfolio}
+              className="text-[11px] font-medium text-[#78726A] hover:text-[#DA6A45] transition-colors flex items-center gap-1 mt-0.5 group/creator cursor-pointer"
+              title="Visit Yashwanth Tadikonda's Portfolio"
+            >
+              <span>created by <span className="font-semibold underline decoration-[#DA6A45]/30 group-hover/creator:decoration-[#DA6A45] underline-offset-2">yashwanth tadikonda</span></span>
+              <ExternalLink className="w-2.5 h-2.5 opacity-60 group-hover/creator:opacity-100 group-hover/creator:translate-x-0.5 group-hover/creator:-translate-y-0.5 transition-all" />
+            </a>
           </div>
         </div>
 

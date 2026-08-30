@@ -8,6 +8,7 @@ import { LoadingScreen } from './components/LoadingScreen';
 import { TestSettings } from './types';
 import { getSavedSettings, saveSettings, getStreak, getWeakKeysFromHistory } from './lib/storage';
 import { soundEngine } from './lib/sound';
+import { getDecryptedPortfolioUrl, openCreatorPortfolio } from './lib/portfolio';
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,6 +16,11 @@ export default function App() {
   const [settings, setSettings] = useState<TestSettings>(() => getSavedSettings());
   const [streak, setStreak] = useState(() => getStreak());
   const [weakKeysList, setWeakKeysList] = useState<string[]>(() => getWeakKeysFromHistory());
+
+  // Ensure browser tab title is Key Master
+  useEffect(() => {
+    document.title = 'Key Master';
+  }, []);
 
   // Keep sound engine config synced with user settings
   useEffect(() => {
@@ -95,8 +101,21 @@ export default function App() {
       </main>
 
       {/* Global Footer */}
-      <footer className="relative z-10 w-full border-t border-[#E5DFD5] bg-[#F7F4EF]/70 backdrop-blur-md py-6 text-center text-xs text-[#78726A]">
+      <footer className="relative z-10 w-full border-t border-[#E5DFD5] bg-[#F7F4EF]/70 backdrop-blur-md py-6 text-center text-xs text-[#78726A] flex flex-col items-center gap-1.5">
         <p>KeyMaster • Master Touch Typing, Speed Tests, Row Tutorials & Arcade Games</p>
+        <p className="text-[11px] text-[#78726A]">
+          Created by{' '}
+          <a
+            id="creator-portfolio-footer-link"
+            href={getDecryptedPortfolioUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={openCreatorPortfolio}
+            className="font-semibold text-[#DA6A45] hover:text-[#C85A37] hover:underline underline-offset-2 transition-colors cursor-pointer"
+          >
+            Yashwanth Tadikonda
+          </a>
+        </p>
       </footer>
     </div>
   );
