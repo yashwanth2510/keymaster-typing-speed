@@ -24,7 +24,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   const [userInput, setUserInput] = useState('');
   const [isActive, setIsActive] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(settings.timeLimit);
+  const [timeLeft, setTimeLeft] = useState<number>(settings.timeLimit);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [keystrokes, setKeystrokes] = useState<number>(0);
   const [correctKeystrokes, setCorrectKeystrokes] = useState<number>(0);
@@ -199,7 +199,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       } else {
         setAiStatus('loading');
         setAiError('');
-        const wordCount = settings.mode === 'words' ? settings.wordLimit : 45;
+        const wordCount = 45;
         const genTimer = setTimeout(() => {
           if (currentReqId.current === reqId) {
             setAiStatus('fallback');
