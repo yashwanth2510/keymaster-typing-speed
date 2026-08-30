@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
 # KeyMaster — Typing Speed Test & Practice Studio
 
 A typing speed test with AI-powered practice passages, weak-key drills, and AI coaching, powered by the Gemini API.
