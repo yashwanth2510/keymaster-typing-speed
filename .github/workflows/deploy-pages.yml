@@ -30,12 +30,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Typecheck
-        run: |
-          ls node_modules/@types 2>/dev/null || echo "NO @types dir"
-          ls node_modules/react | head -20
-          node -e "const p=require('react/package.json');console.log('react.types=',p.types,'|main=',p.main)"
-          npx tsc --noEmit --traceResolution src/main.tsx 2>&1 | grep -iE "react.*\.d\.ts|@types/react|node_modules/react/re" | sort -u | head -30 || true
-          npm run lint
+        run: npm run lint
 
       - name: Build (front-end only, repo sub-path base)
         run: npx vite build --base=/keymaster-typing-speed/
