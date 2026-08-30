@@ -53,9 +53,11 @@ async function startServer() {
     lastGoodText.set(prompt, text);
   }
 
-  // Helper to execute Gemini requests with parallel model fallback and graceful error handling.
-  // All candidate models are tried at once and the first usable response wins, so slow or dead
-  // models cannot delay the reply (sequential fallback used to take ~60s).
+  // Helper to execute Gemini requests with graceful model fallback.
+  // Free-tier keys have tight per-key daily limits, so we don't waste quota:
+  // models are tried one at a time and we stop at the first usable response,
+  // so a successful request costs exactly one model call. If a model is
+  // throttled (429) or slow we move on to the next candidate.
   async function generateWithGeminiFallback(
     prompt: string,
     config?: { responseMimeType?: string }
@@ -69,62 +71,45 @@ async function startServer() {
     // Use current Gemini models (gemini-3.7-flash, gemini-3.6-flash, gemini-2.5-flash)
     // Deprecated models like gemini-2.0-flash are strictly removed.
     const modelsToTry = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
-    const PER_MODEL_TIMEOUT_MS = 25000;
+    const PER_MODEL_TIMEOUT_MS = 20000;
 
-    // Race all candidate models in parallel and resolve as soon as the first one
-    // returns usable text. Hard per-model timeout guarantees a bounded response.
-    return await new Promise<string | null>((resolve) => {
-      let pending = modelsToTry.length;
-      let settled = false;
-
-      const finish = (text: string | null) => {
-        if (settled) return;
-        settled = true;
-        if (text) cacheSet(prompt, text);
-        resolve(text);
-      };
-
-      for (const model of modelsToTry) {
-        (async () => {
-          const timer = setTimeout(() => {
-            pending -= 1;
-            if (pending === 0) finish(null);
-          }, PER_MODEL_TIMEOUT_MS);
-
-          try {
-            const response = await ai.models.generateContent({
-              model,
-              contents: prompt,
-              config: config?.responseMimeType
-                ? { responseMimeType: config.responseMimeType }
-                : undefined,
-            });
-            const text = response.text?.trim().replace(/^["']|["']$/g, '');
-            if (text && text.length > 5) {
-              lastGeminiError = null;
-              finish(text);
-              return;
-            }
-          } catch (err: any) {
-            const errMsg = err?.message || String(err);
-            lastGeminiError = errMsg.slice(0, 300);
-            if (
-              errMsg.includes('429') ||
-              errMsg.includes('RESOURCE_EXHAUSTED') ||
-              errMsg.includes('503') ||
-              errMsg.includes('UNAVAILABLE')
-            ) {
-              console.warn(`[Gemini API ${model}] Rate limited or unavailable, continuing...`);
-            } else {
-              console.warn(`[Gemini API ${model}] Error:`, errMsg);
-            }
-          }
-          clearTimeout(timer);
-          pending -= 1;
-          if (pending === 0) finish(null);
-        })();
+    for (const model of modelsToTry) {
+      try {
+        const text = await Promise.race([
+          ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: config?.responseMimeType
+              ? { responseMimeType: config.responseMimeType }
+              : undefined,
+          }).then((response) => {
+            const t = response.text?.trim().replace(/^["']|["']$/g, '');
+            return t && t.length > 5 ? t : null;
+          }),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_MODEL_TIMEOUT_MS)),
+        ]);
+        if (text) {
+          lastGeminiError = null;
+          cacheSet(prompt, text);
+          return text;
+        }
+      } catch (err: any) {
+        const errMsg = err?.message || String(err);
+        lastGeminiError = errMsg.slice(0, 300);
+        if (
+          errMsg.includes('429') ||
+          errMsg.includes('RESOURCE_EXHAUSTED') ||
+          errMsg.includes('503') ||
+          errMsg.includes('UNAVAILABLE')
+        ) {
+          console.warn(`[Gemini API ${model}] Rate limited or unavailable, continuing...`);
+        } else {
+          console.warn(`[Gemini API ${model}] Error:`, errMsg);
+        }
       }
-    });
+    }
+
+    return null;
   }
 
   // API Route: Health Check
