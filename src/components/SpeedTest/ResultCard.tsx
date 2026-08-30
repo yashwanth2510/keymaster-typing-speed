@@ -47,8 +47,11 @@ export const ResultCard: React.FC<ResultCardProps> = ({
         })
       });
       const data = await res.json();
-      if (data.advice) {
-        setAiCoaching(data.advice);
+      const advice = data && typeof data.advice === 'object' && Array.isArray(data.advice.tips)
+        ? { summary: String(data.advice.summary || ''), tips: data.advice.tips.filter((t: unknown) => typeof t === 'string') }
+        : null;
+      if (advice) {
+        setAiCoaching(advice);
       }
     } catch (err) {
       console.error('Failed to load AI coaching:', err);

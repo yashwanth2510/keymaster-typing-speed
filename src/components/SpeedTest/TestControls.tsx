@@ -20,7 +20,9 @@ export const TestControls: React.FC<TestControlsProps> = ({
   weakKeysList
 }) => {
   const [customTopic, setCustomTopic] = useState('');
-  const [showAIPrompt, setShowAIPrompt] = useState(false);
+  // If the app opens directly in AI Topic mode (persisted setting), open the topic
+  // prompt right away so users immediately see where to enter their topic.
+  const [showAIPrompt, setShowAIPrompt] = useState(settings.mode === 'ai');
 
   const submitPendingRef = useRef(false);
 

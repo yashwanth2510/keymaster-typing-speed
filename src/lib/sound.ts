@@ -27,7 +27,19 @@ class SoundEngine {
       };
       window.addEventListener('pointerdown', handleFirstInteraction, { passive: true });
       window.addEventListener('keydown', handleFirstInteraction, { passive: true });
+      window.addEventListener('mousemove', handleFirstInteraction, { passive: true });
       this.hasInteractionListener = true;
+
+      // Browsers suspend WebAudio while a tab is hidden. When the user returns,
+      // re-connect the context so typing sounds and ambience keep working.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.initCtx();
+          if (this.ambienceEnabled && this.ambienceSound !== 'off' && !this.ambienceGainNode) {
+            this.startAmbience();
+          }
+        }
+      });
     }
   }
 
@@ -645,6 +657,19 @@ class SoundEngine {
     this.initCtx();
     if (!this.ctx) return;
 
+    // Browsers start AudioContext suspended (autoplay policy). Only schedule
+    // oscillators once the context is actually running, otherwise the sound is
+    // silently dropped (e.g. the loading-screen keystroke sounds).
+    if (this.ctx.state !== 'running') {
+      this.ctx.resume().then(() => this.doKeyPress(key)).catch(() => {});
+      return;
+    }
+    this.doKeyPress(key);
+  }
+
+  private doKeyPress(key: string = '') {
+    if (!this.ctx) return;
+
     const now = this.ctx.currentTime;
 
     // Space key has a deeper thump sound
@@ -781,6 +806,16 @@ class SoundEngine {
     this.initCtx();
     if (!this.ctx) return;
 
+    if (this.ctx.state !== 'running') {
+      this.ctx.resume().then(() => this.doPlaySuccess()).catch(() => {});
+      return;
+    }
+    this.doPlaySuccess();
+  }
+
+  private doPlaySuccess() {
+    if (!this.ctx) return;
+
     const now = this.ctx.currentTime;
     [523.25, 659.25, 783.99].forEach((freq, i) => {
       if (!this.ctx) return;
@@ -855,7 +890,7 @@ class SoundEngine {
     bellOsc.stop(now + 0.8);
 
     setTimeout(() => {
-      if (!this.ctx) return;
+      if (!this.ctx || this.ctx.state !== 'running') return;
       const t = this.ctx.currentTime;
       const clackOsc = this.ctx.createOscillator();
       const clackGain = this.ctx.createGain();

@@ -190,7 +190,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     setTimeout(() => {
       hiddenInputRef.current?.focus();
     }, 100);
-  }, [settings.mode, settings.wordLimit, settings.timeLimit, settings.difficulty, settings.category, weakKeysJoined]);
+  }, [settings.mode, settings.wordLimit, settings.timeLimit, settings.difficulty, weakKeysJoined]);
 
   // Handle custom AI topic text generation
   const handleGenerateAIText = (topic: string) => {
@@ -198,6 +198,8 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     if (!trimmedTopic) return;
     aiTopicExplicitRef.current = true;
     aiTopicRef.current = trimmedTopic;
+    // Persist the topic so reopening the site keeps it (and survives reloads).
+    onUpdateSettings({ mode: 'ai', category: trimmedTopic });
     generateText();
   };
 
