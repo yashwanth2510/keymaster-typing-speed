@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, RefreshCw, Zap, Award, Flag } from 'lucide-react';
+import { Trophy, RefreshCw, Zap, Award, Flag, CarFront } from 'lucide-react';
 import { COMMON_WORDS } from '../../lib/data';
 import { soundEngine } from '../../lib/sound';
 import { saveArcadeHighScore, getArcadeHighScores } from '../../lib/storage';
@@ -109,12 +109,12 @@ export const RacerGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   return (
     <div className="w-full max-w-4xl mx-auto py-4 flex flex-col gap-4">
       {/* Top Bar */}
-      <div className="flex items-center justify-between bg-white/80 border border-slate-200/80 px-6 py-3 rounded-2xl shadow-sm backdrop-blur-md">
-        <button onClick={onBack} className="text-xs text-slate-600 hover:text-slate-900 font-semibold">
+      <div className="flex items-center justify-between bg-white/80 border border-[#E5DFD5] px-6 py-3 rounded-2xl shadow-sm backdrop-blur-md">
+        <button onClick={onBack} className="text-xs text-[#78726A] hover:text-[#2C2825] font-semibold transition-colors">
           ← Back to Games
         </button>
-        <span className="text-sm font-bold text-indigo-700">Speed Racer Typing Drag</span>
-        <div className="flex items-center gap-2 text-xs font-mono text-amber-700 font-bold">
+        <span className="text-sm font-bold text-[#2C2825]">Speed Racer Typing Drag</span>
+        <div className="flex items-center gap-2 text-xs font-mono text-amber-800 font-bold">
           <Award className="w-4 h-4 text-amber-500" />
           <span>High Score: {highScore} Pts</span>
         </div>
@@ -160,9 +160,9 @@ export const RacerGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     {/* Vehicle */}
                     <div
                       style={{ left: `${Math.min(racer.progress, 92)}%` }}
-                      className={`absolute transition-[left] duration-100 ease-linear px-2 py-0.5 rounded-lg text-xs font-bold font-mono shadow-md ${racer.color}`}
+                      className={`absolute transition-[left] duration-100 ease-linear px-2 py-1 rounded-lg text-xs font-bold font-mono shadow-md ${racer.color}`}
                     >
-                      🏎️
+                      <CarFront className="w-5 h-5" />
                     </div>
                   </div>
                 </div>

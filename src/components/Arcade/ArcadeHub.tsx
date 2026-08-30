@@ -157,7 +157,7 @@ export const ArcadeHub: React.FC = () => {
                 Solar Drift: Comet Rush
               </h3>
               <p className="text-xs text-[#78726A] mt-1 leading-relaxed">
-                Word-bearing comets streak across deep space toward your ship. Type their words to fire missiles and blast them out of the solar system!
+                Word-bearing comets streak across the golden solar horizon toward your ship. Type their words to fire missiles and blast them clear of the sun!
               </p>
             </div>
           </div>

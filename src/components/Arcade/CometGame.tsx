@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Rocket, RotateCcw, Award, Heart } from 'lucide-react';
+import { Rocket, RotateCcw, Award, Heart, Sun, Zap, Sparkles, CircleAlert } from 'lucide-react';
 import { COMMON_WORDS } from '../../lib/data';
 import { soundEngine } from '../../lib/sound';
 import { saveArcadeHighScore, getArcadeHighScores } from '../../lib/storage';
@@ -189,9 +189,13 @@ export const CometGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       </div>
 
       {/* Main Game Canvas */}
-      <div id="comet-game-canvas" className="relative w-full h-[520px] bg-gradient-to-b from-[#2C2A40] via-[#4A3F5A] to-[#2C2825] border-2 border-[#E5DFD5] rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between p-4">
-        {/* Star field pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(#F3C096_1px,transparent_1px)] [background-size:22px_22px] opacity-15" />
+      <div id="comet-game-canvas" className="relative w-full h-[520px] bg-gradient-to-b from-[#F7C873] via-[#F2E5C9] to-[#FAF8F5] border-2 border-[#E5DFD5] rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between p-4">
+        {/* Golden solar particles */}
+        <div className="absolute inset-0 bg-[radial-gradient(#DA6A45_1px,transparent_1px)] [background-size:22px_22px] opacity-15" />
+
+        {/* Radiant sun disc on the right horizon */}
+        <div className="absolute -right-8 top-1/2 -translate-y-1/2 w-52 h-52 rounded-full bg-[radial-gradient(circle,#FFD9A8_0%,#E88B52_55%,#DA6A45_75%,transparent_78%)] opacity-70 pointer-events-none" />
+        <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-36 h-36 rounded-full bg-[radial-gradient(circle,#FFE6C2_0%,#F5A96B_60%,transparent_72%)] opacity-80 pointer-events-none" />
 
         {/* HUD */}
         {gameState === 'playing' && (
@@ -220,11 +224,11 @@ export const CometGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         {gameState === 'menu' && (
           <div className="relative z-30 flex-1 flex flex-col items-center justify-center text-center gap-4 p-6 bg-white/80 backdrop-blur-md rounded-2xl">
             <div className="w-16 h-16 rounded-2xl bg-[#DA6A45]/10 border border-[#DA6A45]/20 flex items-center justify-center text-[#DA6A45] shadow-sm">
-              <Rocket className="w-8 h-8" />
+              <Sun className="w-8 h-8" />
             </div>
             <h2 className="text-3xl font-black text-[#2C2825]">Solar Drift</h2>
             <p className="text-xs text-[#78726A] max-w-sm">
-              Word-sol comets streak across deep space toward your ship. Type their words to fire missiles and blast them out of the solar system!
+              Word-bearing comets streak across the golden solar horizon toward your ship. Type their words to fire missiles and blast them clear of the sun!
             </p>
             <button
               onClick={startGame}
@@ -255,7 +259,9 @@ export const CometGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             ))}
 
             {/* Player ship at left */}
-            <div className="absolute left-1 top-1/2 -translate-y-1/2 z-10 text-3xl">🚀</div>
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-2xl bg-[#2C2825] border border-[#DA6A45]/60 flex items-center justify-center shadow-lg shadow-[#DA6A45]/30">
+              <Rocket className="w-6 h-6 text-[#F2ECE1]" />
+            </div>
 
             {/* Comets */}
             {comets.map((c) => {
@@ -263,7 +269,7 @@ export const CometGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               const now = performance.now();
               const bobPx = c.bob * Math.sin((now / 1000) * c.bobSpeed + idSeed(c.id));
 
-              let badgeClass = 'bg-white border-[#F3C096] text-[#2C2825] shadow-lg';
+              let badgeClass = 'bg-white border-[#DA6A45]/50 text-[#2C2825] shadow-lg';
               if (c.type === 'bomb') badgeClass = 'bg-rose-50 border-rose-500 text-rose-900 shadow-lg';
               if (c.type === 'gold') badgeClass = 'bg-amber-50 border-amber-500 text-amber-900 shadow-lg';
 
@@ -277,8 +283,8 @@ export const CometGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   }}
                   className="absolute flex flex-col items-center gap-0.5 z-10 will-change-transform"
                 >
-                  <div className={`text-xl drop-shadow-lg opacity-80 ${c.type === 'bomb' ? ' text-rose-300' : c.type === 'gold' ? ' text-amber-300' : ' text-[#F3C096]'}`}>
-                    {c.type === 'bomb' ? '☄️' : c.type === 'gold' ? '✨' : '💫'}
+                  <div className={`drop-shadow opacity-90 ${c.type === 'bomb' ? 'text-rose-500' : c.type === 'gold' ? 'text-amber-500' : 'text-[#DA6A45]'}`}>
+                    {c.type === 'bomb' ? <CircleAlert className="w-5 h-5" /> : c.type === 'gold' ? <Sparkles className="w-5 h-5" /> : <Zap className="w-5 h-5 fill-current" />}
                   </div>
                   <div className={`px-3 py-1 rounded-xl border text-xs font-mono font-bold ${badgeClass} ${isTypedMatch ? 'scale-110 ring-2 ring-[#DA6A45]' : ''}`}>
                     {c.word}

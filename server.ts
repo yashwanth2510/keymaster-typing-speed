@@ -126,33 +126,12 @@ async function startServer() {
   });
 
   // API Route: Generate Custom Typing Text
+  // Free-tier Gemini quota is reserved for weak-key drills only, so topic
+  // passages are curated on the server without spending any API calls.
   app.post('/api/generate-text', async (req, res) => {
     const rawCategory = typeof req.body?.category === 'string' ? req.body.category : '';
     const category = rawCategory.trim().replace(/[\r\n]+/g, ' ').slice(0, 80) || 'General Knowledge';
     const difficulty = ['easy', 'medium', 'hard'].includes(req.body?.difficulty) ? req.body.difficulty : 'medium';
-    const wordCount = Math.min(Math.max(Number(req.body?.wordCount) || 45, 10), 200);
-
-    const prompt = `Generate a readable, cohesive single-paragraph typing practice text.
-Category/Topic: "${category}"
-Difficulty level: ${difficulty} (easy: simple vocabulary and common words; medium: moderate vocabulary and punctuation; hard: technical jargon, numbers, and symbols).
-Target length: Approximately ${wordCount} words.
-Important constraints:
-- Return ONLY the clean practice text string itself. No quotes, no preamble, no markdown formatting, no titles, no line breaks.
-- Ensure proper punctuation and capitalization appropriate for the difficulty level.
-- Ensure all characters are standard typable ASCII characters.`;
-
-    const generatedText = await generateWithGeminiFallback(prompt);
-
-    if (generatedText) {
-      return res.json({ text: generatedText, source: 'ai' });
-    }
-
-    // Gemini is throttled/unavailable right now — reuse the last successful
-    // generation for this exact topic if we have one so text stays relevant.
-    const staleGood = lastGoodText.get(prompt);
-    if (staleGood) {
-      return res.json({ text: staleGood, source: 'ai' });
-    }
 
     return res.json({ text: getFallbackText(category, difficulty), source: 'built-in' });
   });
@@ -189,45 +168,16 @@ Return ONLY the raw text without commentary or formatting.`;
   });
 
   // API Route: AI Typing Coach Feedback
+  // Uses the built-in static coach so the single Gemini key stays free for weak-key drills.
   app.post('/api/ai-coaching', async (req, res) => {
-    const { wpm, accuracy, errorKeys = [], duration, mode } = req.body;
+    const { wpm, accuracy, errorKeys = [] } = req.body;
 
-    const prompt = `You are KeyMaster, an expert touch-typing coach. Analyze the user's latest typing speed test results and provide friendly, concise, actionable feedback.
-User Statistics:
-- Speed: ${wpm} WPM
-- Accuracy: ${accuracy}%
-- Mode: ${mode} (${duration} seconds)
-- Frequently missed keys: ${errorKeys.length > 0 ? errorKeys.join(', ') : 'None'}
-
-Provide a structured response in JSON format with two fields:
-1. "summary": A 1-2 sentence supportive appraisal of their rhythm and speed level.
-2. "tips": An array of 3 bullet points with specific ergonomic, finger placement, or practice suggestions based on their errors.
-
-Return strictly valid JSON like: {"summary": "...", "tips": ["...", "...", "..."]}`;
-
-    const rawResponse = await generateWithGeminiFallback(prompt, {
-      responseMimeType: 'application/json',
-    });
-
-    if (rawResponse) {
-      try {
-        let responseText = rawResponse.trim();
-        if (responseText.startsWith('```json')) {
-          responseText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (responseText.startsWith('```')) {
-          responseText = responseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-        const parsed = JSON.parse(responseText);
-        if (parsed.summary && Array.isArray(parsed.tips)) {
-          return res.json({ advice: parsed, source: 'ai' });
-        }
-      } catch (err) {
-        console.warn('Failed to parse AI coaching JSON response, using built-in advice.');
-      }
-    }
+    const normalizedKeys = Array.isArray(errorKeys)
+      ? errorKeys.filter((k: unknown) => typeof k === 'string')
+      : [];
 
     return res.json({
-      advice: getStaticAdvice(wpm, accuracy, errorKeys),
+      advice: getStaticAdvice(Number(wpm) || 0, Number(accuracy) || 100, normalizedKeys),
       source: 'built-in'
     });
   });

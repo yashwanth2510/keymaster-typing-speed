@@ -206,10 +206,10 @@ export const TestControls: React.FC<TestControlsProps> = ({
       {showAIPrompt && (
         <form onSubmit={handleAISubmit} className="w-full max-w-md bg-white/95 border border-[#DA6A45]/30 rounded-2xl p-4 shadow-xl backdrop-blur-2xl flex flex-col gap-3 animate-in fade-in">
           <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-2">
-            <div className="flex items-center gap-2 text-[#2C2825] font-extrabold text-sm">
-              <Sparkles className="w-4 h-4 text-[#DA6A45]" />
-              <span>Generate Custom AI Practice Text</span>
-            </div>
+<div className="flex items-center gap-2 text-[#2C2825] font-extrabold text-sm">
+                <Sparkles className="w-4 h-4 text-[#DA6A45]" />
+                <span>Custom Topic Practice Text</span>
+              </div>
             <button
               type="button"
               onClick={() => setShowAIPrompt(false)}
@@ -219,9 +219,9 @@ export const TestControls: React.FC<TestControlsProps> = ({
             </button>
           </div>
 
-          <p className="text-xs text-[#78726A] leading-relaxed">
-            Enter any topic (e.g., "Cyberpunk Neo-Tokyo", "Cybersecurity Basics", "Astronomy") to generate practice text with AI!
-          </p>
+<p className="text-xs text-[#78726A] leading-relaxed">
+              Enter any topic (e.g., "Cyberpunk Neo-Tokyo", "Cybersecurity Basics", "Astronomy") to get a custom practice passage. The single AI key stays reserved for weak-key drills, so topics use curated sample text.
+            </p>
 
           <div className="flex gap-2">
             <input

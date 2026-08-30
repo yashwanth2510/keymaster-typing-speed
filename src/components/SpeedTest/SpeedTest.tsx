@@ -41,6 +41,10 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   type GenStatus = 'idle' | 'loading' | 'generated' | 'fallback';
   const [aiStatus, setAiStatus] = useState<GenStatus>('idle');
   const [aiError, setAiError] = useState('');
+  // Tracks where the shown topic passage came from: AI (real Gemini) or a
+  // curated built-in sample. Topics never hit the API key (it is reserved for
+  // weak drills), so we label the chip honestly instead of claiming AI.
+  const [aiSource, setAiSource] = useState<'ai' | 'built-in' | null>(null);
   const [weakStatus, setWeakStatus] = useState<GenStatus>('idle');
   const [weakError, setWeakError] = useState('');
   // Derived loading flag keeps the TestControls Generate button and the
@@ -104,6 +108,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     // Clear any stale generator status/errors from a previous mode or attempt.
     setAiStatus('idle');
     setAiError('');
+    setAiSource(null);
     setWeakStatus('idle');
     setWeakError('');
 
@@ -213,17 +218,20 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           const cleanText = typeof data?.text === 'string'
             ? normalizeText(data.text)
             : '';
-          if (data.source === 'ai' && cleanText.length > 5) {
+          // Topic passages intentionally never use the Gemini key (it is reserved
+          // for weak drills), so any well-formed response — AI or curated — counts.
+          if (cleanText.length > 5) {
             // Only swap if the user hasn't started typing yet.
             if (!isActiveRef.current && userInputRef.current === '') {
               setTargetText(cleanText);
               setAiStatus('generated');
+              setAiSource(data.source === 'ai' ? 'ai' : 'built-in');
             } else {
               setAiStatus('idle');
             }
           } else {
             setAiStatus('fallback');
-            setAiError('AI is busy right now');
+            setAiError('empty response');
           }
         } catch (err) {
           console.error('Failed to generate AI text:', err);
@@ -489,7 +497,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   const showLoadingPill = isLoadingAIText;
   const showFallbackPill = aiStatus === 'fallback' || weakStatus === 'fallback';
   const fallbackMessage = aiStatus === 'fallback'
-    ? `AI couldn't generate your topic${aiError ? ` (${aiError})` : ''}.`
+    ? `Couldn't load a topic passage${aiError ? ` (${aiError})` : ''}.`
     : `AI drill unavailable${weakError ? ` (${weakError})` : ''}.`;
   const showAIGeneratedChip = aiStatus === 'generated';
   const showWeakGeneratedChip = weakStatus === 'generated';
@@ -592,7 +600,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             {showAIGeneratedChip && (
               <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI passage — {aiTopicRef.current}</span>
+                <span>{aiSource === 'ai' ? `AI passage — ${aiTopicRef.current}` : `Topic sample — ${aiTopicRef.current || settings.category}`}</span>
               </div>
             )}
 
