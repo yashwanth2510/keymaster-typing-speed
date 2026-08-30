@@ -1,0 +1,15 @@
+name: Keep Render Service Warm
+
+on:
+  schedule:
+    # Every 10 minutes — wakes the free-tier container so AI generations
+    # aren't delayed by a cold start on the user's first attempt.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render health endpoint
+        run: curl -fsS --max-time 60 https://keymaster-typing-studio.onrender.com/api/health || true

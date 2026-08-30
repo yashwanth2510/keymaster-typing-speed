@@ -93,7 +93,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         setIsLoadingAIText(true);
         const slowTimer = setTimeout(() => {
           if (currentReqId.current === reqId) setIsLoadingAIText(false);
-        }, 15000);
+        }, 25000);
         try {
           const res = await fetch('/api/weak-key-drill', {
             method: 'POST',
@@ -106,6 +106,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             currentReqId.current === reqId &&
             !isActiveRef.current &&
             userInputRef.current === '' &&
+            data.source === 'ai' &&
             data.text
           ) {
             setTargetText(data.text);
@@ -125,7 +126,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       setIsLoadingAIText(true);
       const slowTimer = setTimeout(() => {
         if (currentReqId.current === reqId) setIsLoadingAIText(false);
-      }, 15000);
+      }, 25000);
       try {
         const res = await fetch('/api/generate-text', {
           method: 'POST',
@@ -141,6 +142,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           currentReqId.current === reqId &&
           !isActiveRef.current &&
           userInputRef.current === '' &&
+          data.source === 'ai' &&
           data.text
         ) {
           setTargetText(data.text);
@@ -177,7 +179,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     setTimeLeft(settings.timeLimit);
     const slowTimer = setTimeout(() => {
       if (currentReqId.current === reqId) setIsLoadingAIText(false);
-    }, 15000);
+    }, 25000);
     try {
       const res = await fetch('/api/generate-text', {
         method: 'POST',
@@ -193,6 +195,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         currentReqId.current === reqId &&
         !isActiveRef.current &&
         userInputRef.current === '' &&
+        data.source === 'ai' &&
         data.text
       ) {
         setTargetText(data.text);

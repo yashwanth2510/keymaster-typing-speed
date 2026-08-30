@@ -60,7 +60,7 @@ async function startServer() {
     // Use current Gemini models (gemini-3.7-flash, gemini-3.6-flash, gemini-2.5-flash)
     // Deprecated models like gemini-2.0-flash are strictly removed.
     const modelsToTry = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
-    const PER_MODEL_TIMEOUT_MS = 12000;
+    const PER_MODEL_TIMEOUT_MS = 25000;
 
     // Race all candidate models in parallel and resolve as soon as the first one
     // returns usable text. Hard per-model timeout guarantees a bounded response.
