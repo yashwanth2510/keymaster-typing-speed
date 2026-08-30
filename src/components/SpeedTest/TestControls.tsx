@@ -220,7 +220,7 @@ export const TestControls: React.FC<TestControlsProps> = ({
           </div>
 
 <p className="text-xs text-[#78726A] leading-relaxed">
-              Enter any topic (e.g., "Cyberpunk Neo-Tokyo", "Cybersecurity Basics", "Astronomy") to get a custom practice passage. The single AI key stays reserved for weak-key drills, so topics use curated sample text.
+              Enter any topic (e.g., "Cyberpunk Neo-Tokyo", "Cybersecurity Basics", "Astronomy") to get a custom practice passage generated with AI.
             </p>
 
           <div className="flex gap-2">
