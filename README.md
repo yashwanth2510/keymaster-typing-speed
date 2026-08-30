@@ -47,10 +47,12 @@ The app runs at http://localhost:3000.
 
 ## Deploy (GitHub repo + Render)
 
-The app calls `/api/*` endpoints at the Node backend. The single Gemini key is used **only** by
-the weak-key drill generator (to stretch the free daily quota); topic passages and coaching use
-built-in content. Deploy the repo to **Render** (free tier) so it has a real backend — the
-frontend build is served from the same host, so you only need this one link.
+The app calls `/api/*` endpoints at the Node backend. AI generation supports either provider —
+set `GEMINI_API_KEY` or `OPENROUTER_API_KEY` (drop any provider key in the OpenRouter field; a
+free-tier Llama model is the default). The key powers **only** the weak-key drill generator
+(to stretch free quotas); topic passages and coaching use built-in content. Deploy the repo to
+**Render** (free tier) so it has a real backend — the frontend build is served from the same
+host, so you only need this one link.
 
 ### Deploy to Render
 

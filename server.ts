@@ -28,6 +28,61 @@ async function startServer() {
     }
   }
 
+  // Helper to call the OpenAI-compatible OpenRouter endpoint.
+  // Used first when an OPENROUTER_API_KEY is set (any provider key, e.g. a free-tier
+  // Llama model), falling back to Gemini when the request fails or no key is present.
+  const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL?.trim() || 'meta-llama/llama-3.3-70b-instruct';
+
+  async function generateWithOpenRouter(
+    prompt: string,
+    config?: { responseMimeType?: string }
+  ): Promise<string | null> {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) return null;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 25000);
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://keymaster-typing-studio.onrender.com',
+          'X-Title': 'KeyMaster Typing Studio',
+        },
+        body: JSON.stringify({
+          model: OPENROUTER_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          ...(config?.responseMimeType === 'application/json'
+            ? { response_format: { type: 'json_object' } }
+            : {}),
+        }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        lastGeminiError = `[OpenRouter ${res.status}] ${body.slice(0, 200)}`;
+        console.warn(`[OpenRouter] ${res.status}:`, body.slice(0, 200));
+        return null;
+      }
+
+      const json = (await res.json()) as {
+        choices?: { message?: { content?: unknown } }[];
+      };
+      const content = json?.choices?.[0]?.message?.content;
+      const text = typeof content === 'string' ? content.trim().replace(/^["']|["']$/g, '') : '';
+      return text.length > 5 ? text : null;
+    } catch (err: any) {
+      const errMsg = err?.name === 'AbortError' ? 'timeout' : err?.message || String(err);
+      console.warn('[OpenRouter] Error:', errMsg);
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   // In-memory cache so repeated generations answer instantly instead of re-hitting the API
   const aiCache = new Map<string, { text: string; at: number }>();
   const AI_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -53,17 +108,23 @@ async function startServer() {
     lastGoodText.set(prompt, text);
   }
 
-  // Helper to execute Gemini requests with graceful model fallback.
-  // Free-tier keys have tight per-key daily limits, so we don't waste quota:
-  // models are tried one at a time and we stop at the first usable response,
-  // so a successful request costs exactly one model call. If a model is
-  // throttled (429) or slow we move on to the next candidate.
+  // Helper to execute AI requests (OpenRouter first, then Gemini) with graceful fallback.
+  // Free-tier keys have tight per-day limits, so we don't waste calls: we make at
+  // most one call per provider at a time and stop at the first usable response.
   async function generateWithGeminiFallback(
     prompt: string,
     config?: { responseMimeType?: string }
   ): Promise<string | null> {
     const cached = cacheGet(prompt);
     if (cached) return cached;
+
+    // 1. Prefer OpenRouter when its key is configured (e.g. free-tier Llama).
+    const openRouterText = await generateWithOpenRouter(prompt, config);
+    if (openRouterText) {
+      lastGeminiError = null;
+      cacheSet(prompt, openRouterText);
+      return openRouterText;
+    }
 
     const ai = getGeminiClient();
     if (!ai) return null;
@@ -117,6 +178,8 @@ async function startServer() {
     res.json({
       status: 'ok',
       hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasOpenRouterKey: Boolean(process.env.OPENROUTER_API_KEY),
+      openRouterModel: OPENROUTER_MODEL,
       diagnostics: {
         lastGeminiError,
         aiCacheSize: aiCache.size,
