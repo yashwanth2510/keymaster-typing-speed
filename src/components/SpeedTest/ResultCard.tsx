@@ -3,7 +3,6 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianG
 import { Trophy, RefreshCw, Sparkles, CheckCircle2, AlertCircle, Share2, Award, Clock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { TestResult, AICoaching } from '../../types';
-import { generateCoaching, isAiConfigured } from '../../lib/ai';
 
 interface ResultCardProps {
   result: TestResult;
@@ -36,34 +35,21 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     const slowTimer = setTimeout(() => setIsLoadingCoach(false), 25000);
     try {
       const errorKeysList = Object.keys(result.errorKeys || {});
-      let advice = null;
-      if (isAiConfigured()) {
-        // Browser-direct Groq: works on static hosts with no backend.
-        const local = await generateCoaching({
+      const res = await fetch('/api/ai-coaching', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           wpm: result.wpm,
           accuracy: result.accuracy,
           errorKeys: errorKeysList,
           duration: result.timeElapsed,
           mode: result.mode
-        });
-        advice = local.tips.length > 0 ? local : null;
-      } else {
-        const res = await fetch('/api/ai-coaching', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wpm: result.wpm,
-            accuracy: result.accuracy,
-            errorKeys: errorKeysList,
-            duration: result.timeElapsed,
-            mode: result.mode
-          })
-        });
-        const data = await res.json();
-        advice = data && typeof data.advice === 'object' && Array.isArray(data.advice.tips)
-          ? { summary: String(data.advice.summary || ''), tips: data.advice.tips.filter((t: unknown) => typeof t === 'string') }
-          : null;
-      }
+        })
+      });
+      const data = await res.json();
+      const advice = data && typeof data.advice === 'object' && Array.isArray(data.advice.tips)
+        ? { summary: String(data.advice.summary || ''), tips: data.advice.tips.filter((t: unknown) => typeof t === 'string') }
+        : null;
       if (advice) {
         setAiCoaching(advice);
       }

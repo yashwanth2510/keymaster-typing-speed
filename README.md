@@ -8,15 +8,12 @@ A typing speed test with **AI-powered practice passages**, weak-key drills, AI c
 
 👉 **https://keymaster-typing-studio.onrender.com**
 
-This is the recommended URL to test all features — the AI topic generator, weak-key drills and AI coach run through the Node backend on this host.
+This is the recommended URL to share and test all features — the AI topic generator, weak-key drills and AI coach run through the Node backend on this host. No sign-up or API key needed.
 
-Static host (GitHub Pages):
+Static host (GitHub Pages) — frontend-only mirror:
 
 - https://yashwanth2510.github.io/keymaster-typing-speed/
-- AI works here too! Open **AI Topic** mode and paste a free Groq API key
-  (console.groq.com/keys, no card) into the **"Free In-Browser AI"** box. The key is stored
-  only in your browser and powers topic passages, weak drills and coaching directly from the
-  page — no backend needed.
+- This copy has no backend, so AI features (AI Topic, weak-key drills, coaching) are unavailable there. Use the Render URL above for the full experience.
 
 ## ✨ Features
 
@@ -50,13 +47,8 @@ The app runs at http://localhost:3000.
 
 ## Deploy (GitHub repo + Render)
 
-Two AI paths are supported:
-
-- **Node backend (default):** the app calls `/api/*` Gemini endpoints. Deploy to
-  **Render** (free tier) so it has a real backend (steps below).
-- **In-browser AI (optional):** on any static host (like GitHub Pages) the frontend can
-  call Groq directly when the user pastes their own free key in **AI Topic mode**. No server
-  needed — that's how the github.io demo gets AI.
+The app calls `/api/*` Gemini endpoints. Deploy the repo to **Render** (free tier) so it has
+a real backend — the frontend build is served from the same host, so you only need this one link.
 
 ### Deploy to Render
 
@@ -81,4 +73,4 @@ Deploys elsewhere (Railway, Cloud Run, Fly.io) also work the same way — `npm r
 
 ## Tech Stack
 
-React 19 + Vite + TypeScript, Express server, Gemini API (`@google/genai`), optional in-browser Groq client, Recharts, Canvas Confetti.
+React 19 + Vite + TypeScript, Express server, Gemini API (`@google/genai`), Recharts, Canvas Confetti.

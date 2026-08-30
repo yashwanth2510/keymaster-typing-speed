@@ -7,7 +7,6 @@ import { COMMON_WORDS, QUOTES, CODE_SNIPPETS } from '../../lib/data';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 import { soundEngine } from '../../lib/sound';
 import { saveTestResult } from '../../lib/storage';
-import { generateAIPassage, generateWeakDrill, isAiConfigured } from '../../lib/ai';
 
 interface SpeedTestProps {
   settings: TestSettings;
@@ -142,26 +141,18 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           }
         }, 28000);
         try {
-          let cleanDrill = '';
-          let drill: { source: string; text: string } = { source: '', text: '' };
-          if (isAiConfigured()) {
-            // Browser-direct Groq: works on static hosts with no backend.
-            const aiDrill = await generateWeakDrill(weakKeysList);
-            drill = { source: aiDrill.source, text: aiDrill.text };
-            cleanDrill = normalizeText(drill.text);
-          } else {
-            const res = await fetch('/api/weak-key-drill', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ weakKeys: weakKeysList })
-            });
-            const data = await res.json();
-            drill = { source: data?.source, text: typeof data?.text === 'string' ? data.text : '' };
-            cleanDrill = normalizeText(drill.text);
-          }
+          const res = await fetch('/api/weak-key-drill', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ weakKeys: weakKeysList })
+          });
+          const data = await res.json();
           if (currentReqId.current !== reqId) return;
 
-          if (drill.source === 'ai' && cleanDrill.length > 5) {
+          const cleanDrill = typeof data?.text === 'string'
+            ? normalizeText(data.text)
+            : '';
+          if (data.source === 'ai' && cleanDrill.length > 5) {
             // Only swap if the user hasn't started typing yet.
             if (!isActiveRef.current && userInputRef.current === '') {
               setTargetText(cleanDrill);
@@ -177,7 +168,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           console.error('Failed to fetch weak key drill:', err);
           if (currentReqId.current !== reqId) return;
           setWeakStatus('fallback');
-          setWeakError(err instanceof Error ? err.message : 'network error');
+          setWeakError('network error');
         } finally {
           clearTimeout(genTimer);
         }
@@ -207,34 +198,22 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           }
         }, 28000);
         try {
-          let cleanText = '';
-          let gensource = '';
-          if (isAiConfigured()) {
-            // Browser-direct Groq: works on static hosts with no backend.
-            const pass = await generateAIPassage({
-              topic,
+          const res = await fetch('/api/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              category: topic,
               difficulty: settings.difficulty,
               wordCount
-            });
-            cleanText = normalizeText(pass.text);
-            gensource = pass.source;
-          } else {
-            const res = await fetch('/api/generate-text', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                category: topic,
-                difficulty: settings.difficulty,
-                wordCount
-              })
-            });
-            const data = await res.json();
-            gensource = data.source;
-            cleanText = typeof data?.text === 'string' ? normalizeText(data.text) : '';
-          }
+            })
+          });
+          const data = await res.json();
           if (currentReqId.current !== reqId) return;
 
-          if (gensource === 'ai' && cleanText.length > 5) {
+          const cleanText = typeof data?.text === 'string'
+            ? normalizeText(data.text)
+            : '';
+          if (data.source === 'ai' && cleanText.length > 5) {
             // Only swap if the user hasn't started typing yet.
             if (!isActiveRef.current && userInputRef.current === '') {
               setTargetText(cleanText);
@@ -250,7 +229,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           console.error('Failed to generate AI text:', err);
           if (currentReqId.current !== reqId) return;
           setAiStatus('fallback');
-          setAiError(err instanceof Error ? err.message : 'network error');
+          setAiError('network error');
         } finally {
           clearTimeout(genTimer);
         }
