@@ -43,6 +43,14 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   isActiveRef.current = isActive;
   const currentReqId = useRef(0);
 
+  // Remembers the custom AI topic so restarts (Esc / Try Again) and wiki/re-entry
+  // into AI mode keep generating text about the same topic instead of a hardcoded one.
+  const aiTopicRef = useRef(settings.category);
+  // True once the user has submitted a topic through the AI prompt. A submitted topic
+  // always gets generated (even the literal "General Knowledge"), while an untouched
+  // default topic produces no background request until the user actually picks one.
+  const aiTopicExplicitRef = useRef(false);
+
   const weakKeysJoined = weakKeysList.join(',');
 
   // Helper to build instant fallback weak key passage
@@ -101,15 +109,18 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             body: JSON.stringify({ weakKeys: weakKeysList })
           });
           const data = await res.json();
+          const cleanDrill = typeof data?.text === 'string'
+            ? data.text.replace(/\s+/g, ' ').trim()
+            : '';
           // Only update if user hasn't started typing yet and this request is still active
           if (
             currentReqId.current === reqId &&
             !isActiveRef.current &&
             userInputRef.current === '' &&
             data.source === 'ai' &&
-            data.text
+            cleanDrill.length > 5
           ) {
-            setTargetText(data.text);
+            setTargetText(cleanDrill);
           }
         } catch (err) {
           console.error('Failed to fetch weak key drill:', err);
@@ -123,36 +134,50 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     } else if (settings.mode === 'ai') {
       const instant = [...COMMON_WORDS].sort(() => Math.random() - 0.5).slice(0, 35).join(' ');
       setTargetText(instant);
-      setIsLoadingAIText(true);
-      const slowTimer = setTimeout(() => {
-        if (currentReqId.current === reqId) setIsLoadingAIText(false);
-      }, 25000);
-      try {
-        const res = await fetch('/api/generate-text', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            category: 'technology',
-            difficulty: settings.difficulty,
-            wordCount: 45
-          })
-        });
-        const data = await res.json();
-        if (
-          currentReqId.current === reqId &&
-          !isActiveRef.current &&
-          userInputRef.current === '' &&
-          data.source === 'ai' &&
-          data.text
-        ) {
-          setTargetText(data.text);
-        }
-      } catch (err) {
-        console.error('Failed to generate AI text:', err);
-      } finally {
-        clearTimeout(slowTimer);
-        if (currentReqId.current === reqId) {
-          setIsLoadingAIText(false);
+
+      const topic = (aiTopicRef.current || settings.category || '').trim();
+      const hasCustomTopic = aiTopicExplicitRef.current || (topic && topic !== 'General Knowledge');
+
+      // If no custom topic has been picked yet, do NOT fire a background request —
+      // the AI topic prompt is open and there is nothing meaningful to generate.
+      if (!hasCustomTopic) {
+        setIsLoadingAIText(false);
+      } else {
+        setIsLoadingAIText(true);
+        const wordCount = settings.mode === 'words' ? settings.wordLimit : 45;
+        const slowTimer = setTimeout(() => {
+          if (currentReqId.current === reqId) setIsLoadingAIText(false);
+        }, 25000);
+        try {
+          const res = await fetch('/api/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              category: topic,
+              difficulty: settings.difficulty,
+              wordCount
+            })
+          });
+          const data = await res.json();
+          const cleanText = typeof data?.text === 'string'
+            ? data.text.replace(/\s+/g, ' ').trim()
+            : '';
+          if (
+            currentReqId.current === reqId &&
+            !isActiveRef.current &&
+            userInputRef.current === '' &&
+            data.source === 'ai' &&
+            cleanText.length > 5
+          ) {
+            setTargetText(cleanText);
+          }
+        } catch (err) {
+          console.error('Failed to generate AI text:', err);
+        } finally {
+          clearTimeout(slowTimer);
+          if (currentReqId.current === reqId) {
+            setIsLoadingAIText(false);
+          }
         }
       }
     } else {
@@ -165,52 +190,15 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     setTimeout(() => {
       hiddenInputRef.current?.focus();
     }, 100);
-  }, [settings.mode, settings.wordLimit, settings.timeLimit, settings.difficulty, weakKeysJoined]);
+  }, [settings.mode, settings.wordLimit, settings.timeLimit, settings.difficulty, settings.category, weakKeysJoined]);
 
   // Handle custom AI topic text generation
-  const handleGenerateAIText = async (topic: string) => {
-    const reqId = ++currentReqId.current;
-    setIsLoadingAIText(true);
-    const instant = [...COMMON_WORDS].sort(() => Math.random() - 0.5).slice(0, 35).join(' ');
-    setTargetText(instant);
-    setUserInput('');
-    setIsActive(false);
-    setIsFinished(false);
-    setTimeLeft(settings.timeLimit);
-    const slowTimer = setTimeout(() => {
-      if (currentReqId.current === reqId) setIsLoadingAIText(false);
-    }, 25000);
-    try {
-      const res = await fetch('/api/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: topic,
-          difficulty: settings.difficulty,
-          wordCount: 45
-        })
-      });
-      const data = await res.json();
-      if (
-        currentReqId.current === reqId &&
-        !isActiveRef.current &&
-        userInputRef.current === '' &&
-        data.source === 'ai' &&
-        data.text
-      ) {
-        setTargetText(data.text);
-      }
-    } catch (err) {
-      console.error('Failed to generate AI text:', err);
-      if (currentReqId.current === reqId && !isActiveRef.current) {
-        setTargetText("Artificial intelligence and machine learning are revolutionizing modern technology.");
-      }
-    } finally {
-      clearTimeout(slowTimer);
-      if (currentReqId.current === reqId) {
-        setIsLoadingAIText(false);
-      }
-    }
+  const handleGenerateAIText = (topic: string) => {
+    const trimmedTopic = topic.trim();
+    if (!trimmedTopic) return;
+    aiTopicExplicitRef.current = true;
+    aiTopicRef.current = trimmedTopic;
+    generateText();
   };
 
   const prevSettingsRef = useRef({
@@ -510,7 +498,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           <div className="flex flex-col gap-2">
             {isLoadingAIText && (
               <div className="self-center text-[#DA6A45] animate-pulse font-mono text-xs bg-[#DA6A45]/10 rounded-full px-3 py-1 border border-[#DA6A45]/30 backdrop-blur-md">
-                âœ¨ Preparing an AI passage â€” you can start typing now
+                ✨ Preparing an AI passage — you can start typing now
               </div>
             )}
             <div className="relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner">

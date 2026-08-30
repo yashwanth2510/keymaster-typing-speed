@@ -126,7 +126,10 @@ async function startServer() {
 
   // API Route: Generate Custom Typing Text
   app.post('/api/generate-text', async (req, res) => {
-    const { category = 'General Knowledge', difficulty = 'medium', wordCount = 40 } = req.body;
+    const rawCategory = typeof req.body?.category === 'string' ? req.body.category : '';
+    const category = rawCategory.trim().replace(/[\r\n]+/g, ' ').slice(0, 80) || 'General Knowledge';
+    const difficulty = ['easy', 'medium', 'hard'].includes(req.body?.difficulty) ? req.body.difficulty : 'medium';
+    const wordCount = Math.min(Math.max(Number(req.body?.wordCount) || 45, 10), 200);
 
     const prompt = `Generate a readable, cohesive single-paragraph typing practice text.
 Category/Topic: "${category}"

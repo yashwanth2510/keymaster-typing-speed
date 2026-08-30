@@ -34,6 +34,14 @@ export const TestControls: React.FC<TestControlsProps> = ({
     }
   }, [isLoadingAIText]);
 
+  // Never leave the AI prompt floating when the user switches mode (Time/Words/etc).
+  useEffect(() => {
+    if (settings.mode !== 'ai') {
+      setShowAIPrompt(false);
+      submitPendingRef.current = false;
+    }
+  }, [settings.mode]);
+
   const handleAISubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!customTopic.trim()) return;
