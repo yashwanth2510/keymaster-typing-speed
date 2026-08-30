@@ -195,16 +195,27 @@ async function startServer() {
     const difficulty = ['easy', 'medium', 'hard'].includes(req.body?.difficulty) ? req.body.difficulty : 'medium';
     const wordCount = Math.min(Math.max(Number(req.body?.wordCount) || 45, 10), 200);
 
-    const prompt = `Generate a readable, cohesive single-paragraph typing practice text.
-Category/Topic: "${category}"
+    const buildPrompt = (extra: string) => `Write a fluent, cohesive, multi-sentence single-paragraph typing practice passage about: "${category}"
 Difficulty level: ${difficulty} (easy: simple vocabulary and common words; medium: moderate vocabulary and punctuation; hard: technical jargon, numbers, and symbols).
-Target length: Approximately ${wordCount} words.
+Target length: MUST be around ${wordCount} words. Do NOT stop after one sentence - develop the idea with several full sentences until you have roughly ${wordCount} words.
 Important constraints:
-- Return ONLY the clean practice text string itself. No quotes, no preamble, no markdown formatting, no titles, no line breaks.
+- Return ONLY the clean passage text itself. No quotes, no preamble, no markdown formatting, no titles, no line breaks.
 - Ensure proper punctuation and capitalization appropriate for the difficulty level.
-- Ensure all characters are standard typable ASCII characters.`;
+- Ensure all characters are standard typable ASCII characters.${extra}`;
 
-    const generatedText = await generateWithGeminiFallback(prompt);
+    let generatedText = await generateWithGeminiFallback(buildPrompt(''));
+
+    // Some models stop after a single short sentence. If the reply is far too
+    // short, push once to expand it into the requested length.
+    const minWords = Math.round(wordCount * 0.5);
+    if (generatedText && generatedText.split(/\s+/).length < minWords) {
+      const expanded = await generateWithGeminiFallback(
+        buildPrompt(`\nLONGER REQUIRED: your previous reply was too short. Expand it into a full multi-sentence paragraph of at least ${wordCount} words. Count your output and keep adding sentences until you reach that length.`)
+      );
+      if (expanded && expanded.split(/\s+/).length >= minWords) {
+        generatedText = expanded;
+      }
+    }
 
     if (generatedText) {
       return res.json({ text: generatedText, source: 'ai' });
@@ -212,7 +223,7 @@ Important constraints:
 
     // Provider throttled/unavailable — reuse the last successful generation for this
     // exact topic if we have one so text stays relevant.
-    const staleGood = lastGoodText.get(prompt);
+    const staleGood = lastGoodText.get(buildPrompt(''));
     if (staleGood) {
       return res.json({ text: staleGood, source: 'ai' });
     }
@@ -234,7 +245,7 @@ Important constraints:
     const formattedKeys = weakKeys.slice(0, 5).join(', ');
     const prompt = `Create a typing exercise text that heavily emphasizes these specific target letters/characters: [${formattedKeys}].
 The text should be a meaningful sequence of real English words or pseudo-words that forces the typist to repeatedly press the target keys: ${formattedKeys}.
-Total length: around 25-35 words.
+Total length: MUST be around 25-35 words. Do NOT stop after one sentence - keep producing words and short sentences until you have at least 25 words.
 Return ONLY the raw text without commentary or formatting.`;
 
     const drillText = await generateWithGeminiFallback(prompt);
