@@ -207,7 +207,7 @@ Important constraints:
 
     // Some models stop after a single short sentence. If the reply is far too
     // short, push once to expand it into the requested length.
-    const minWords = Math.round(wordCount * 0.5);
+    const minWords = Math.round(wordCount * 0.65);
     if (generatedText && generatedText.split(/\s+/).length < minWords) {
       const expanded = await generateWithGeminiFallback(
         buildPrompt(`\nLONGER REQUIRED: your previous reply was too short. Expand it into a full multi-sentence paragraph of at least ${wordCount} words. Count your output and keep adding sentences until you reach that length.`)
