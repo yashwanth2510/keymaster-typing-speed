@@ -5,12 +5,13 @@ import { StreakInfo, toLocalDateStr } from '../lib/storage';
 import { getDecryptedPortfolioUrl, openCreatorPortfolio } from '../lib/portfolio';
 
 interface HeaderProps {
-  activeTab: 'test' | 'tutorials' | 'arcade' | 'stats';
+  activeTab: number | string; // injected label tab
   setActiveTab: (tab: 'test' | 'tutorials' | 'arcade' | 'stats') => void;
   settings: TestSettings;
-  onUpdateSettings: (newSettings: Partial<TestSettings>) => void;
+  onUpdateSettings: (update: Partial<TestSettings>) => void;
   streakCount: number;
   streakInfo?: StreakInfo;
+  onOpenStreak?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -19,7 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   settings,
   onUpdateSettings,
   streakCount,
-  streakInfo
+  streakInfo,
+  onOpenStreak
 }) => {
   const [showAmbiencePopover, setShowAmbiencePopover] = useState(false);
   const [showStreakPopover, setShowStreakPopover] = useState(false);
@@ -36,6 +38,15 @@ export const Header: React.FC<HeaderProps> = ({
   });
 
   const portfolioUrl = getDecryptedPortfolioUrl();
+
+  // Show the user's own calendar day/timezone so streak dates are transparent
+  const now = new Date();
+  const todayDisplay = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+  let browserTz = 'Browser timezone';
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) browserTz = tz;
+  } catch {}
 
   return (
     <header className="w-full bg-[#FAF8F5]/90 border-b border-[#E5DFD5] backdrop-blur-md sticky top-0 z-50 shadow-[0_2px_12px_0_rgba(60,45,30,0.04)]">
@@ -137,7 +148,10 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="relative">
             <button
               id="streak-badge-btn"
-              onClick={() => setShowStreakPopover(!showStreakPopover)}
+              onClick={() => {
+                onOpenStreak?.();
+                setShowStreakPopover(!showStreakPopover);
+              }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-[#DA6A45]/10 hover:bg-[#DA6A45]/20 border border-[#DA6A45]/25 rounded-full text-[#C85A37] text-xs font-semibold transition-all cursor-pointer shadow-2xs"
               title="Daily Practice Streak (Stored via browser cookies & history)"
             >
@@ -205,6 +219,9 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     ))}
                   </div>
+                  <span className="text-[10px] text-[#78726A]">
+                    Today {todayDisplay} · {browserTz}
+                  </span>
                 </div>
               </div>
             )}

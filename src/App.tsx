@@ -78,6 +78,7 @@ export default function App() {
           onUpdateSettings={handleUpdateSettings}
           streakCount={streak.count}
           streakInfo={streak}
+          onOpenStreak={() => setStreak(getStreak())}
         />
       </div>
 
