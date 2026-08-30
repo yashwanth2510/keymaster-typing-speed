@@ -32,6 +32,11 @@ async function startServer() {
   const aiCache = new Map<string, { text: string; at: number }>();
   const AI_CACHE_TTL_MS = 30 * 60 * 1000;
 
+  // Last successful generation per prompt. Kept even after the cache TTL expires so
+  // that when Gemini is temporarily throttled/unavailable (e.g. 429 quota bursts) we
+  // can still return a topic-relevant passage instead of a generic practice sentence.
+  const lastGoodText = new Map<string, string>();
+
   function cacheGet(prompt: string): string | null {
     const hit = aiCache.get(prompt);
     if (hit && Date.now() - hit.at < AI_CACHE_TTL_MS) return hit.text;
@@ -42,6 +47,7 @@ async function startServer() {
   function cacheSet(prompt: string, text: string): void {
     if (aiCache.size > 500) aiCache.clear();
     aiCache.set(prompt, { text, at: Date.now() });
+    lastGoodText.set(prompt, text);
   }
 
   // Helper to execute Gemini requests with parallel model fallback and graceful error handling.
@@ -144,9 +150,16 @@ Important constraints:
 
     if (generatedText) {
       return res.json({ text: generatedText, source: 'ai' });
-    } else {
-      return res.json({ text: getFallbackText(category, difficulty), source: 'built-in' });
     }
+
+    // Gemini is throttled/unavailable right now — reuse the last successful
+    // generation for this exact topic if we have one so text stays relevant.
+    const staleGood = lastGoodText.get(prompt);
+    if (staleGood) {
+      return res.json({ text: staleGood, source: 'ai' });
+    }
+
+    return res.json({ text: getFallbackText(category, difficulty), source: 'built-in' });
   });
 
   // API Route: Generate Weak-Key Target Drills
@@ -170,9 +183,14 @@ Return ONLY the raw text without commentary or formatting.`;
 
     if (drillText) {
       return res.json({ text: drillText, source: 'ai' });
-    } else {
-      return res.json({ text: generateFallbackWeakKeyDrill(weakKeys), source: 'built-in' });
     }
+
+    const staleGood = lastGoodText.get(prompt);
+    if (staleGood) {
+      return res.json({ text: staleGood, source: 'ai' });
+    }
+
+    return res.json({ text: generateFallbackWeakKeyDrill(weakKeys), source: 'built-in' });
   });
 
   // API Route: AI Typing Coach Feedback
