@@ -91,6 +91,9 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
 
       if (weakKeysList.length > 0) {
         setIsLoadingAIText(true);
+        const slowTimer = setTimeout(() => {
+          if (currentReqId.current === reqId) setIsLoadingAIText(false);
+        }, 9000);
         try {
           const res = await fetch('/api/weak-key-drill', {
             method: 'POST',
@@ -110,14 +113,19 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         } catch (err) {
           console.error('Failed to fetch weak key drill:', err);
         } finally {
+          clearTimeout(slowTimer);
           if (currentReqId.current === reqId) {
             setIsLoadingAIText(false);
           }
         }
       }
     } else if (settings.mode === 'ai') {
-      setTargetText("Artificial intelligence and computing are advancing technology every single day with innovation.");
+      const instant = [...COMMON_WORDS].sort(() => Math.random() - 0.5).slice(0, 35).join(' ');
+      setTargetText(instant);
       setIsLoadingAIText(true);
+      const slowTimer = setTimeout(() => {
+        if (currentReqId.current === reqId) setIsLoadingAIText(false);
+      }, 9000);
       try {
         const res = await fetch('/api/generate-text', {
           method: 'POST',
@@ -140,6 +148,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       } catch (err) {
         console.error('Failed to generate AI text:', err);
       } finally {
+        clearTimeout(slowTimer);
         if (currentReqId.current === reqId) {
           setIsLoadingAIText(false);
         }
@@ -160,11 +169,15 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   const handleGenerateAIText = async (topic: string) => {
     const reqId = ++currentReqId.current;
     setIsLoadingAIText(true);
-    setTargetText("Generating custom practice passage on " + topic + "...");
+    const instant = [...COMMON_WORDS].sort(() => Math.random() - 0.5).slice(0, 35).join(' ');
+    setTargetText(instant);
     setUserInput('');
     setIsActive(false);
     setIsFinished(false);
     setTimeLeft(settings.timeLimit);
+    const slowTimer = setTimeout(() => {
+      if (currentReqId.current === reqId) setIsLoadingAIText(false);
+    }, 9000);
     try {
       const res = await fetch('/api/generate-text', {
         method: 'POST',
@@ -190,6 +203,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         setTargetText("Artificial intelligence and machine learning are revolutionizing modern technology.");
       }
     } finally {
+      clearTimeout(slowTimer);
       if (currentReqId.current === reqId) {
         setIsLoadingAIText(false);
       }

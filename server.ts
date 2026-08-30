@@ -28,46 +28,80 @@ async function startServer() {
     }
   }
 
-  // Helper to execute Gemini requests with model fallback and graceful error handling
+  // In-memory cache so repeated generations answer instantly instead of re-hitting the API
+  const aiCache = new Map<string, { text: string; at: number }>();
+  const AI_CACHE_TTL_MS = 30 * 60 * 1000;
+
+  function cacheGet(prompt: string): string | null {
+    const hit = aiCache.get(prompt);
+    if (hit && Date.now() - hit.at < AI_CACHE_TTL_MS) return hit.text;
+    if (hit) aiCache.delete(prompt);
+    return null;
+  }
+
+  function cacheSet(prompt: string, text: string): void {
+    if (aiCache.size > 500) aiCache.clear();
+    aiCache.set(prompt, { text, at: Date.now() });
+  }
+
+  // Helper to execute Gemini requests with parallel model fallback and graceful error handling.
+  // All candidate models are tried at once and the first usable response wins, so slow or dead
+  // models cannot delay the reply (sequential fallback used to take ~60s).
   async function generateWithGeminiFallback(
     prompt: string,
     config?: { responseMimeType?: string }
   ): Promise<string | null> {
+    const cached = cacheGet(prompt);
+    if (cached) return cached;
+
     const ai = getGeminiClient();
     if (!ai) return null;
 
     // Use current Gemini models (gemini-3.7-flash, gemini-3.6-flash, gemini-2.5-flash)
-    // Deprecated models like gemini-2.0-flash are strictly removed
+    // Deprecated models like gemini-2.0-flash are strictly removed.
     const modelsToTry = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
 
-    for (const model of modelsToTry) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: prompt,
-          config: config?.responseMimeType
-            ? { responseMimeType: config.responseMimeType }
-            : undefined,
-        });
-        const text = response.text?.trim().replace(/^["']|["']$/g, '');
-        if (text && text.length > 5) {
-          return text;
+    const attempts = await Promise.allSettled(
+      modelsToTry.map(async (model) => {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents: prompt,
+            config: config?.responseMimeType
+              ? { responseMimeType: config.responseMimeType }
+              : undefined,
+          });
+          const text = response.text?.trim().replace(/^["']|["']$/g, '');
+          if (!text || text.length <= 5) {
+            return { ok: false as const, text: null as string | null };
+          }
+          return { ok: true as const, text };
+        } catch (err: any) {
+          const errMsg = err?.message || String(err);
+          if (
+            errMsg.includes('429') ||
+            errMsg.includes('RESOURCE_EXHAUSTED') ||
+            errMsg.includes('503') ||
+            errMsg.includes('UNAVAILABLE')
+          ) {
+            console.warn(`[Gemini API ${model}] Rate limited or unavailable, continuing...`);
+          } else {
+            console.warn(`[Gemini API ${model}] Error:`, errMsg);
+          }
+          return { ok: false as const, text: null as string | null };
         }
-      } catch (err: any) {
-        const errMsg = err?.message || String(err);
-        if (
-          errMsg.includes('429') ||
-          errMsg.includes('RESOURCE_EXHAUSTED') ||
-          errMsg.includes('503') ||
-          errMsg.includes('UNAVAILABLE')
-        ) {
-          console.warn(`[Gemini API ${model}] Rate limit or service unavailable, trying next fallback...`);
-        } else {
-          console.warn(`[Gemini API ${model}] Error:`, errMsg);
-        }
-      }
-    }
-    return null;
+      })
+    );
+
+    const winner = attempts
+      .filter((r): r is PromiseFulfilledResult<{ ok: true; text: string }> =>
+        r.status === 'fulfilled' && r.value.ok
+      )
+      .map((r) => r.value.text)
+      [0] || null;
+
+    if (winner) cacheSet(prompt, winner);
+    return winner;
   }
 
   // API Route: Health Check

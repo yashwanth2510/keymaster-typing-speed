@@ -32,6 +32,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
 
   const handleFetchAICoaching = async () => {
     setIsLoadingCoach(true);
+    const slowTimer = setTimeout(() => setIsLoadingCoach(false), 25000);
     try {
       const errorKeysList = Object.keys(result.errorKeys || {});
       const res = await fetch('/api/ai-coaching', {
@@ -52,6 +53,7 @@ export const ResultCard: React.FC<ResultCardProps> = ({
     } catch (err) {
       console.error('Failed to load AI coaching:', err);
     } finally {
+      clearTimeout(slowTimer);
       setIsLoadingCoach(false);
     }
   };
