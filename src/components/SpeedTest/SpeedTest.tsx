@@ -4,6 +4,7 @@ import { ResultCard } from './ResultCard';
 import { Keyboard } from '../Keyboard';
 import { TestSettings, TestResult } from '../../types';
 import { COMMON_WORDS, QUOTES, CODE_SNIPPETS } from '../../lib/data';
+import { AlertTriangle, Sparkles } from 'lucide-react';
 import { soundEngine } from '../../lib/sound';
 import { saveTestResult } from '../../lib/storage';
 
@@ -32,7 +33,19 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   const [showKeyboard, setShowKeyboard] = useState(true);
   const [lastPressedKey, setLastPressedKey] = useState('');
   const [lastErrorKey, setLastErrorKey] = useState('');
-  const [isLoadingAIText, setIsLoadingAIText] = useState(false);
+
+  // Generator status machine shared by the AI-topic and weak-key drill flows.
+  // idle = instant passage only (no request / nothing to report),
+  // loading = request in flight, generated = AI text swapped in,
+  // fallback = request failed/too slow and the instant passage is being shown.
+  type GenStatus = 'idle' | 'loading' | 'generated' | 'fallback';
+  const [aiStatus, setAiStatus] = useState<GenStatus>('idle');
+  const [aiError, setAiError] = useState('');
+  const [weakStatus, setWeakStatus] = useState<GenStatus>('idle');
+  const [weakError, setWeakError] = useState('');
+  // Derived loading flag keeps the TestControls Generate button and the
+  // close-on-finish logic working unchanged for both generators.
+  const isLoadingAIText = aiStatus === 'loading' || weakStatus === 'loading';
 
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -53,6 +66,20 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
 
   const weakKeysJoined = weakKeysList.join(',');
 
+  // Normalize AI text so every character is typeable on a standard keyboard:
+  // typographic quotes/dashes/marks become their ASCII equivalents and any
+  // stray non-ASCII character is dropped (otherwise the passage could contain
+  // characters the typist literally cannot produce).
+  const normalizeText = (text: string) =>
+    text
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/\u2026/g, '...')
+      .replace(/[^\x20-\x7E]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
   // Helper to build instant fallback weak key passage
   const getWeakKeysFallback = (keys: string[]) => {
     if (!keys || keys.length === 0) {
@@ -69,9 +96,16 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     return "crazy fuzzy quartz jackal vexes quiet zebra while quick pixel zinc boxes zip through extra icy zone";
   };
 
-  // Generate target text based on mode
-  const generateText = useCallback(async () => {
+  // Generate target text based on mode. An explicit AI topic can be passed so a
+  // freshly submitted topic is used on the very first attempt.
+  const generateText = useCallback(async (explicitTopic?: string) => {
     const reqId = ++currentReqId.current;
+
+    // Clear any stale generator status/errors from a previous mode or attempt.
+    setAiStatus('idle');
+    setAiError('');
+    setWeakStatus('idle');
+    setWeakError('');
 
     setIsActive(false);
     setIsFinished(false);
@@ -94,14 +128,18 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       const snippet = CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)];
       setTargetText(snippet.text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim());
     } else if (settings.mode === 'weak') {
-      // Instant initial passage so there is no layout jump
+      // Instant weak-key passage so there is no layout jump while the AI drill loads.
       setTargetText(getWeakKeysFallback(weakKeysList));
 
       if (weakKeysList.length > 0) {
-        setIsLoadingAIText(true);
-        const slowTimer = setTimeout(() => {
-          if (currentReqId.current === reqId) setIsLoadingAIText(false);
-        }, 25000);
+        setWeakStatus('loading');
+        setWeakError('');
+        const genTimer = setTimeout(() => {
+          if (currentReqId.current === reqId) {
+            setWeakStatus('fallback');
+            setWeakError('took too long');
+          }
+        }, 22000);
         try {
           const res = await fetch('/api/weak-key-drill', {
             method: 'POST',
@@ -109,45 +147,56 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             body: JSON.stringify({ weakKeys: weakKeysList })
           });
           const data = await res.json();
+          if (currentReqId.current !== reqId) return;
+
           const cleanDrill = typeof data?.text === 'string'
-            ? data.text.replace(/\s+/g, ' ').trim()
+            ? normalizeText(data.text)
             : '';
-          // Only update if user hasn't started typing yet and this request is still active
-          if (
-            currentReqId.current === reqId &&
-            !isActiveRef.current &&
-            userInputRef.current === '' &&
-            data.source === 'ai' &&
-            cleanDrill.length > 5
-          ) {
-            setTargetText(cleanDrill);
+          if (data.source === 'ai' && cleanDrill.length > 5) {
+            // Only swap if the user hasn't started typing yet.
+            if (!isActiveRef.current && userInputRef.current === '') {
+              setTargetText(cleanDrill);
+              setWeakStatus('generated');
+            } else {
+              setWeakStatus('idle');
+            }
+          } else {
+            setWeakStatus('fallback');
+            setWeakError('AI is busy right now');
           }
         } catch (err) {
           console.error('Failed to fetch weak key drill:', err);
+          if (currentReqId.current !== reqId) return;
+          setWeakStatus('fallback');
+          setWeakError('network error');
         } finally {
-          clearTimeout(slowTimer);
-          if (currentReqId.current === reqId) {
-            setIsLoadingAIText(false);
-          }
+          clearTimeout(genTimer);
         }
       }
     } else if (settings.mode === 'ai') {
+      // Instant practice passage so the user can start typing immediately while the
+      // AI text about their topic is being generated in the background.
       const instant = [...COMMON_WORDS].sort(() => Math.random() - 0.5).slice(0, 35).join(' ');
       setTargetText(instant);
 
-      const topic = (aiTopicRef.current || settings.category || '').trim();
+      const topic = (explicitTopic || aiTopicRef.current || settings.category || '').trim();
       const hasCustomTopic = aiTopicExplicitRef.current || (topic && topic !== 'General Knowledge');
 
-      // If no custom topic has been picked yet, do NOT fire a background request —
-      // the AI topic prompt is open and there is nothing meaningful to generate.
+      // No custom topic picked yet: the AI topic prompt is open, so skip the
+      // background request — nothing meaningful to generate until the user submits.
       if (!hasCustomTopic) {
-        setIsLoadingAIText(false);
+        setAiStatus('idle');
+        setAiError('');
       } else {
-        setIsLoadingAIText(true);
+        setAiStatus('loading');
+        setAiError('');
         const wordCount = settings.mode === 'words' ? settings.wordLimit : 45;
-        const slowTimer = setTimeout(() => {
-          if (currentReqId.current === reqId) setIsLoadingAIText(false);
-        }, 25000);
+        const genTimer = setTimeout(() => {
+          if (currentReqId.current === reqId) {
+            setAiStatus('fallback');
+            setAiError('took too long');
+          }
+        }, 22000);
         try {
           const res = await fetch('/api/generate-text', {
             method: 'POST',
@@ -159,25 +208,30 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             })
           });
           const data = await res.json();
+          if (currentReqId.current !== reqId) return;
+
           const cleanText = typeof data?.text === 'string'
-            ? data.text.replace(/\s+/g, ' ').trim()
+            ? normalizeText(data.text)
             : '';
-          if (
-            currentReqId.current === reqId &&
-            !isActiveRef.current &&
-            userInputRef.current === '' &&
-            data.source === 'ai' &&
-            cleanText.length > 5
-          ) {
-            setTargetText(cleanText);
+          if (data.source === 'ai' && cleanText.length > 5) {
+            // Only swap if the user hasn't started typing yet.
+            if (!isActiveRef.current && userInputRef.current === '') {
+              setTargetText(cleanText);
+              setAiStatus('generated');
+            } else {
+              setAiStatus('idle');
+            }
+          } else {
+            setAiStatus('fallback');
+            setAiError('AI is busy right now');
           }
         } catch (err) {
           console.error('Failed to generate AI text:', err);
+          if (currentReqId.current !== reqId) return;
+          setAiStatus('fallback');
+          setAiError('network error');
         } finally {
-          clearTimeout(slowTimer);
-          if (currentReqId.current === reqId) {
-            setIsLoadingAIText(false);
-          }
+          clearTimeout(genTimer);
         }
       }
     } else {
@@ -186,9 +240,13 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       setTargetText(shuffled.slice(0, 70).join(' '));
     }
 
-    // Focus input field
+    // Focus the hidden typing input — but never steal focus from the AI topic
+    // prompt (or any other input the user is actively using).
     setTimeout(() => {
-      hiddenInputRef.current?.focus();
+      const el = document.activeElement;
+      if (!el || (el.tagName !== 'INPUT' && el.tagName !== 'TEXTAREA')) {
+        hiddenInputRef.current?.focus();
+      }
     }, 100);
   }, [settings.mode, settings.wordLimit, settings.timeLimit, settings.difficulty, weakKeysJoined]);
 
@@ -200,7 +258,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
     aiTopicRef.current = trimmedTopic;
     // Persist the topic so reopening the site keeps it (and survives reloads).
     onUpdateSettings({ mode: 'ai', category: trimmedTopic });
-    generateText();
+    generateText(trimmedTopic);
   };
 
   const prevSettingsRef = useRef({
@@ -428,6 +486,14 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
 
   const currentTargetChar = targetText[userInput.length] || '';
 
+  const showLoadingPill = isLoadingAIText;
+  const showFallbackPill = aiStatus === 'fallback' || weakStatus === 'fallback';
+  const fallbackMessage = aiStatus === 'fallback'
+    ? `AI couldn't generate your topic${aiError ? ` (${aiError})` : ''}.`
+    : `AI drill unavailable${weakError ? ` (${weakError})` : ''}.`;
+  const showAIGeneratedChip = aiStatus === 'generated';
+  const showWeakGeneratedChip = weakStatus === 'generated';
+
   return (
     <div className="w-full flex flex-col items-center gap-6 py-4">
       {/* Test Controls Bar */}
@@ -498,9 +564,42 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
 
           {/* Typing Passage Display */}
           <div className="flex flex-col gap-2">
-            {isLoadingAIText && (
-              <div className="self-center text-[#DA6A45] animate-pulse font-mono text-xs bg-[#DA6A45]/10 rounded-full px-3 py-1 border border-[#DA6A45]/30 backdrop-blur-md">
-                ✨ Preparing an AI passage — you can start typing now
+            {showLoadingPill && (
+              <div className="self-center text-[#DA6A45] animate-pulse font-mono text-xs bg-[#DA6A45]/10 rounded-full px-3 py-1 border border-[#DA6A45]/30 backdrop-blur-md flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Preparing a smarter passage — you can start typing now</span>
+              </div>
+            )}
+
+            {showFallbackPill && !showLoadingPill && (
+              <div className="self-center flex items-center gap-2 text-amber-700 font-mono text-xs bg-amber-50 rounded-full px-3 py-1 border border-amber-600/30 backdrop-blur-md">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                <span>
+                  {fallbackMessage}{' '}
+                  {aiStatus === 'fallback'
+                    ? 'Showing instant practice words.'
+                    : 'Showing a built-in weak-key drill.'}
+                </span>
+                <button
+                  onClick={() => generateText()}
+                  className="underline font-bold hover:text-amber-900 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {showAIGeneratedChip && (
+              <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>AI passage · {aiTopicRef.current}</span>
+              </div>
+            )}
+
+            {showWeakGeneratedChip && (
+              <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>AI drill · targeting {weakKeysList.length} weak key{weakKeysList.length === 1 ? '' : 's'}</span>
               </div>
             )}
             <div className="relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner">

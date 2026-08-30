@@ -60,7 +60,7 @@ async function startServer() {
     // Use current Gemini models (gemini-3.7-flash, gemini-3.6-flash, gemini-2.5-flash)
     // Deprecated models like gemini-2.0-flash are strictly removed.
     const modelsToTry = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-2.5-flash'];
-    const PER_MODEL_TIMEOUT_MS = 25000;
+    const PER_MODEL_TIMEOUT_MS = 15000;
 
     // Race all candidate models in parallel and resolve as soon as the first one
     // returns usable text. Hard per-model timeout guarantees a bounded response.
@@ -264,6 +264,22 @@ function getFallbackText(category: string, difficulty: string): string {
     "Fingers positioned gracefully on A S D F and J K L semicolon form the foundational posture for rapid typing across all keyboard layouts."
   ];
 
+  // Unknown/custom topics get a fallback that still names the topic so the
+  // "AI is busy" practice text feels relevant rather than generic.
+  if (!Fallbacks[category]) {
+    const intro = [
+      `Practice passage on ${category}:`,
+      `Typing exercise about ${category}:`,
+      `Here is a short practice text about ${category}:`
+    ][Math.floor(Math.random() * 3)];
+    const body = [
+      "Thoughtful practice builds speed, so keep your fingers on the home row and let rhythm guide every gentle keystroke.",
+      "Accuracy comes before speed. Nudge your pace gently upward as each word settles into comfortable, reliable muscle memory.",
+      "Relax your shoulders and let each character flow naturally, correcting small slips softly until the whole passage feels effortless."
+    ][Math.floor(Math.random() * 3)];
+    return intro + ' ' + body;
+  }
+
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -279,23 +295,32 @@ function generateFallbackWeakKeyDrill(keys: string[]): string {
     "brave", "swift", "rhythm", "sphere", "galaxy", "starlight", "vortex", "cascade", "nexus",
     "crystal", "harmony", "symphony", "keyboard", "practice", "dexterity", "accuracy", "velocity",
     "blitz", "juicy", "oxygen", "wizard", "sphinx", "jockey", "frenzy", "squadron",
-    "jigsaw", "zipper", "jolt", "pyramid", "zephyr", "exquisite", "keycap", "home", "row", "finger"
+    "jigsaw", "zipper", "jolt", "pyramid", "zephyr", "exquisite", "keycap", "home", "row", "finger",
+    "quilt", "quiver", "quiz", "quota", "zany", "zippy", "xylophone", "vivid", "vault", "jazz",
+    "exact", "external", "extra", "vanish", "voltage", "fizz", "bazaar", "breeze"
   ];
 
   const matchingWords = WORD_BANK.filter(word =>
-    cleanKeys.some(k => word.includes(k))
+    cleanKeys.some(k => word.toLowerCase().includes(k))
   );
 
-  if (matchingWords.length >= 4) {
-    const chosen = matchingWords.slice(0, 10);
-    return `focus on target keys (${cleanKeys.join(' ')}): ` + chosen.join(' ') + " with steady rhythm and clean accuracy";
+  const pool = matchingWords.length >= 8 ? matchingWords : WORD_BANK;
+
+  // Cycle words that exercise the target keys to build a ~30 word drill so the
+  // practice session has enough length to be useful even without AI.
+  const words: string[] = [];
+  let i = 0;
+  while (words.length < 30) {
+    const word = pool[i % pool.length];
+    if (!words.includes(word)) words.push(word);
+    i += 1;
+    if (i > pool.length * 3) break;
+  }
+  if (words.length < 10) {
+    words.push("steady", "rhythm", "clean", "accuracy", "muscle", "memory", "finger", "motion");
   }
 
-  const kStr = cleanKeys.join('').toLowerCase();
-  if (kStr.includes('q') || kStr.includes('z') || kStr.includes('x') || kStr.includes('v') || kStr.includes('j')) {
-    return "crazy fuzzy quartz jackal vexes quiet zebra while quick pixel zinc boxes zip through extra icy quartz zone";
-  }
-  return `keep practicing typing keys ${cleanKeys.join(' ')} with steady rhythm and smooth finger movements to build flawless muscle memory`;
+  return `focus on target keys (${cleanKeys.join(' ')}): ` + words.slice(0, 30).join(' ');
 }
 
 function getStaticAdvice(wpm: number, accuracy: number, errorKeys: string[]) {

@@ -19,7 +19,13 @@ export const TestControls: React.FC<TestControlsProps> = ({
   isLoadingAIText,
   weakKeysList
 }) => {
-  const [customTopic, setCustomTopic] = useState('');
+  const [customTopic, setCustomTopic] = useState(() =>
+    // If a custom topic was persisted, surface it in the prompt so it can be
+    // reused or replaced instead of forcing a retype every time.
+    settings.mode === 'ai' && settings.category && settings.category !== 'General Knowledge'
+      ? settings.category
+      : ''
+  );
   // If the app opens directly in AI Topic mode (persisted setting), open the topic
   // prompt right away so users immediately see where to enter their topic.
   const [showAIPrompt, setShowAIPrompt] = useState(settings.mode === 'ai');
@@ -113,6 +119,10 @@ export const TestControls: React.FC<TestControlsProps> = ({
             id="mode-ai"
             onClick={() => {
               onUpdateSettings({ mode: 'ai' });
+              // Re-surface any previously used topic so it can be regenerated or replaced.
+              if (settings.category && settings.category !== 'General Knowledge') {
+                setCustomTopic(settings.category);
+              }
               setShowAIPrompt(true);
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
