@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, Flame, RotateCcw, Award, Zap, Heart } from 'lucide-react';
+import { Shield, Flame, RotateCcw, Award, Zap, Heart, Meteor, Bomb, Timer } from 'lucide-react';
 import { COMMON_WORDS } from '../../lib/data';
 import { soundEngine } from '../../lib/sound';
 import { saveArcadeHighScore, getArcadeHighScores } from '../../lib/storage';
@@ -267,6 +267,9 @@ export const MeteorGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   }}
                   className="absolute flex flex-col items-center gap-1 z-10 will-change-transform"
                 >
+                  <div className={`drop-shadow opacity-90 ${m.type === 'bomb' ? 'text-rose-500' : m.type === 'shield' ? 'text-emerald-600' : m.type === 'slow' ? 'text-sky-600' : 'text-[#DA6A45]'}`}>
+                    {m.type === 'bomb' ? <Bomb className="w-5 h-5" /> : m.type === 'shield' ? <Shield className="w-5 h-5" /> : m.type === 'slow' ? <Timer className="w-5 h-5" /> : <Meteor className="w-5 h-5" />}
+                  </div>
                   <div className={`px-3 py-1 rounded-xl border text-xs font-mono font-bold ${badgeColor} ${isTypedMatch ? 'scale-110 ring-2 ring-[#DA6A45]' : ''}`}>
                     {m.word}
                   </div>

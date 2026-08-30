@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Gamepad2, Flame, Zap, Droplet, Rocket, Trophy } from 'lucide-react';
+import { Gamepad2, Flame, Zap, Droplet, Blocks, Trophy } from 'lucide-react';
 import { MeteorGame } from './MeteorGame';
 import { RacerGame } from './RacerGame';
 import { BubbleGame } from './BubbleGame';
-import { CometGame } from './CometGame';
+import { BrickGame } from './BrickGame';
 import { getArcadeHighScores } from '../../lib/storage';
 
 export const ArcadeHub: React.FC = () => {
-  const [selectedGame, setSelectedGame] = useState<'meteor' | 'racer' | 'bubble' | 'comet' | null>(null);
+  const [selectedGame, setSelectedGame] = useState<'meteor' | 'racer' | 'bubble' | 'brick' | null>(null);
   const highScores = getArcadeHighScores();
 
   if (selectedGame === 'meteor') {
@@ -22,8 +22,8 @@ export const ArcadeHub: React.FC = () => {
     return <BubbleGame onBack={() => setSelectedGame(null)} />;
   }
 
-  if (selectedGame === 'comet') {
-    return <CometGame onBack={() => setSelectedGame(null)} />;
+  if (selectedGame === 'brick') {
+    return <BrickGame onBack={() => setSelectedGame(null)} />;
   }
 
   return (
@@ -112,15 +112,15 @@ export const ArcadeHub: React.FC = () => {
         <div
           id="arcade-card-bubble"
           onClick={() => setSelectedGame('bubble')}
-          className="bg-white/85 border border-[#E5DFD5] hover:border-[#7FB2C5]/70 p-6 rounded-3xl flex flex-col justify-between gap-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-[0_8px_32px_0_rgba(60,45,30,0.06)] hover:shadow-xl backdrop-blur-xl group hover:bg-white/95"
+          className="bg-white/85 border border-[#E5DFD5] hover:border-[#DA6A45]/60 p-6 rounded-3xl flex flex-col justify-between gap-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-[0_8px_32px_0_rgba(60,45,30,0.06)] hover:shadow-xl backdrop-blur-xl group hover:bg-white/95"
         >
           <div className="flex flex-col gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#7FB2C5]/10 border border-[#7FB2C5]/30 flex items-center justify-center text-[#7FB2C5] group-hover:scale-110 transition-transform backdrop-blur-md shadow-2xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#DA6A45]/10 border border-[#DA6A45]/20 flex items-center justify-center text-[#DA6A45] group-hover:scale-110 transition-transform backdrop-blur-md shadow-2xs">
               <Droplet className="w-6 h-6" />
             </div>
 
             <div>
-              <h3 className="text-xl font-extrabold text-[#2C2825] group-hover:text-[#7FB2C5] transition-colors">
+              <h3 className="text-xl font-extrabold text-[#2C2825] group-hover:text-[#DA6A45] transition-colors">
                 Bubble Pop: Word Unravel
               </h3>
               <p className="text-xs text-[#78726A] mt-1 leading-relaxed">
@@ -135,29 +135,29 @@ export const ArcadeHub: React.FC = () => {
               <span>High Score: {highScores['bubble'] || 0} Pts</span>
             </span>
 
-            <span className="text-xs font-bold text-[#7FB2C5] group-hover:translate-x-1 transition-transform">
+            <span className="text-xs font-bold text-[#DA6A45] group-hover:translate-x-1 transition-transform">
               Play Game →
             </span>
           </div>
         </div>
 
-        {/* Solar Drift Card */}
+        {/* Word Bricks Card */}
         <div
-          id="arcade-card-comet"
-          onClick={() => setSelectedGame('comet')}
+          id="arcade-card-brick"
+          onClick={() => setSelectedGame('brick')}
           className="bg-white/85 border border-[#E5DFD5] hover:border-[#DA6A45]/60 p-6 rounded-3xl flex flex-col justify-between gap-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] shadow-[0_8px_32px_0_rgba(60,45,30,0.06)] hover:shadow-xl backdrop-blur-xl group hover:bg-white/95"
         >
           <div className="flex flex-col gap-3">
             <div className="w-12 h-12 rounded-2xl bg-[#DA6A45]/10 border border-[#DA6A45]/20 flex items-center justify-center text-[#DA6A45] group-hover:scale-110 transition-transform backdrop-blur-md shadow-2xs">
-              <Rocket className="w-6 h-6" />
+              <Blocks className="w-6 h-6" />
             </div>
 
             <div>
               <h3 className="text-xl font-extrabold text-[#2C2825] group-hover:text-[#DA6A45] transition-colors">
-                Solar Drift: Comet Rush
+                Word Bricks: Typing Demolition
               </h3>
               <p className="text-xs text-[#78726A] mt-1 leading-relaxed">
-                Word-bearing comets streak across the golden solar horizon toward your ship. Type their words to fire missiles and blast them clear of the sun!
+                A wall of word-bricks sinks toward you! Type each word to smash it and clear the wall before it reaches your typing line!
               </p>
             </div>
           </div>
@@ -165,7 +165,7 @@ export const ArcadeHub: React.FC = () => {
           <div className="flex items-center justify-between pt-4 border-t border-[#E5DFD5]">
             <span className="text-xs font-mono text-amber-800 flex items-center gap-1.5 font-bold">
               <Trophy className="w-4 h-4 text-amber-500" />
-              <span>High Score: {highScores['comet'] || 0} Pts</span>
+              <span>High Score: {highScores['brick'] || 0} Pts</span>
             </span>
 
             <span className="text-xs font-bold text-[#DA6A45] group-hover:translate-x-1 transition-transform">

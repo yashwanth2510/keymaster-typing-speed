@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Droplet, RotateCcw, Award, Heart } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { Droplet, RotateCcw, Award, Heart, Bomb, Sparkles } from 'lucide-react';
 import { COMMON_WORDS } from '../../lib/data';
 import { soundEngine } from '../../lib/sound';
 import { saveArcadeHighScore, getArcadeHighScores } from '../../lib/storage';
@@ -176,7 +176,7 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       {/* Top Header Controls */}
       <div className="flex items-center justify-between bg-white/80 border border-[#E5DFD5] px-6 py-3 rounded-2xl shadow-2xs backdrop-blur-md">
         <button onClick={onBack} className="text-xs text-[#78726A] hover:text-[#2C2825] font-semibold transition-colors">
-          ← Back to Games
+          â† Back to Games
         </button>
         <span className="text-sm font-bold text-[#2C2825]">Bubble Pop Word Unravel</span>
         <div className="flex items-center gap-2 text-xs font-mono text-amber-800 font-bold">
@@ -188,7 +188,7 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       {/* Main Game Canvas */}
       <div id="bubble-game-canvas" className="relative w-full h-[520px] bg-gradient-to-b from-[#E8F4F8] via-[#F2ECE1] to-[#FAF8F5] border-2 border-[#E5DFD5] rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between p-4">
         {/* Water ripple pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(#7FB2C5_1px,transparent_1px)] [background-size:26px_26px] opacity-10" />
+        <div className="absolute inset-0 bg-[radial-gradient(#DA6A45_1px,transparent_1px)] [background-size:26px_26px] opacity-10" />
 
         {/* HUD */}
         {gameState === 'playing' && (
@@ -216,7 +216,7 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         {/* Menu Screen */}
         {gameState === 'menu' && (
           <div className="relative z-30 flex-1 flex flex-col items-center justify-center text-center gap-4 p-6">
-            <div className="w-16 h-16 rounded-2xl bg-[#7FB2C5]/10 border border-[#7FB2C5]/30 flex items-center justify-center text-[#7FB2C5] shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-[#DA6A45]/10 border border-[#DA6A45]/30 flex items-center justify-center text-[#DA6A45] shadow-sm">
               <Droplet className="w-8 h-8" />
             </div>
             <h2 className="text-3xl font-black text-[#2C2825]">Bubble Pop</h2>
@@ -240,7 +240,7 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div
                 key={ring.id}
                 style={{ left: `${ring.x}%`, top: `${ring.y}%` }}
-                className="absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#7FB2C5] animate-ping pointer-events-none z-20"
+                className="absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[#DA6A45] animate-ping pointer-events-none z-20"
               />
             ))}
 
@@ -250,7 +250,7 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               const now = performance.now();
               const swayPx = b.sway * Math.sin((now / 1000) * b.swaySpeed + idSeed(b.id));
 
-              let bubbleClass = 'border-[#7FB2C5] bg-white text-[#2C2825] shadow-md';
+              let bubbleClass = 'border-[#DA6A45] bg-white text-[#2C2825] shadow-md';
               if (b.type === 'bomb') bubbleClass = 'border-rose-500 bg-rose-50 text-rose-900 shadow-md';
               if (b.type === 'gold') bubbleClass = 'border-amber-500 bg-amber-50 text-amber-900 shadow-md';
 
@@ -264,6 +264,9 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   }}
                   className="absolute flex flex-col items-center gap-0.5 z-10 will-change-transform"
                 >
+                  <div className={`drop-shadow opacity-90 ${b.type === 'bomb' ? 'text-rose-500' : b.type === 'gold' ? 'text-amber-500' : 'text-[#DA6A45]'}`}>
+                    {b.type === 'bomb' ? <Bomb className="w-5 h-5" /> : b.type === 'gold' ? <Sparkles className="w-5 h-5" /> : <Droplet className="w-5 h-5 fill-current" />}
+                  </div>
                   <div className={`px-3 py-1.5 rounded-2xl border-2 text-xs font-mono font-bold ${bubbleClass} ${isTypedMatch ? 'scale-110 ring-2 ring-[#DA6A45]' : ''}`}>
                     {b.word}
                   </div>
@@ -306,7 +309,7 @@ export const BubbleGame: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               value={typedInput}
               onChange={handleInputChange}
               placeholder="Type word to pop the bubble..."
-              className="w-full bg-white border-2 border-[#7FB2C5] rounded-2xl px-4 py-2.5 text-center font-mono text-sm text-[#2C2825] focus:outline-none shadow-lg"
+              className="w-full bg-white border-2 border-[#DA6A45] rounded-2xl px-4 py-2.5 text-center font-mono text-sm text-[#2C2825] focus:outline-none shadow-lg"
               autoFocus
             />
           </div>
