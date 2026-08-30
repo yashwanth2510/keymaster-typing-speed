@@ -37,6 +37,9 @@ async function startServer() {
   // can still return a topic-relevant passage instead of a generic practice sentence.
   const lastGoodText = new Map<string, string>();
 
+  // Diagnostic: most recent Gemini error message (null when AI calls succeed).
+  let lastGeminiError: string | null = null;
+
   function cacheGet(prompt: string): string | null {
     const hit = aiCache.get(prompt);
     if (hit && Date.now() - hit.at < AI_CACHE_TTL_MS) return hit.text;
@@ -98,11 +101,13 @@ async function startServer() {
             });
             const text = response.text?.trim().replace(/^["']|["']$/g, '');
             if (text && text.length > 5) {
+              lastGeminiError = null;
               finish(text);
               return;
             }
           } catch (err: any) {
             const errMsg = err?.message || String(err);
+            lastGeminiError = errMsg.slice(0, 300);
             if (
               errMsg.includes('429') ||
               errMsg.includes('RESOURCE_EXHAUSTED') ||
@@ -126,7 +131,12 @@ async function startServer() {
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
-      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY)
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      diagnostics: {
+        lastGeminiError,
+        aiCacheSize: aiCache.size,
+        lastGoodCount: lastGoodText.size
+      }
     });
   });
 
