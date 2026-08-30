@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { TestControls } from './TestControls';
 import { ResultCard } from './ResultCard';
 import { Keyboard } from '../Keyboard';
@@ -139,7 +139,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             setWeakStatus('fallback');
             setWeakError('took too long');
           }
-        }, 22000);
+        }, 28000);
         try {
           const res = await fetch('/api/weak-key-drill', {
             method: 'POST',
@@ -183,7 +183,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       const hasCustomTopic = aiTopicExplicitRef.current || (topic && topic !== 'General Knowledge');
 
       // No custom topic picked yet: the AI topic prompt is open, so skip the
-      // background request â€” nothing meaningful to generate until the user submits.
+      // background request — nothing meaningful to generate until the user submits.
       if (!hasCustomTopic) {
         setAiStatus('idle');
         setAiError('');
@@ -196,7 +196,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             setAiStatus('fallback');
             setAiError('took too long');
           }
-        }, 22000);
+        }, 28000);
         try {
           const res = await fetch('/api/generate-text', {
             method: 'POST',
@@ -240,7 +240,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       setTargetText(shuffled.slice(0, 70).join(' '));
     }
 
-    // Focus the hidden typing input â€” but never steal focus from the AI topic
+    // Focus the hidden typing input — but never steal focus from the AI topic
     // prompt (or any other input the user is actively using).
     setTimeout(() => {
       const el = document.activeElement;
@@ -567,7 +567,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             {showLoadingPill && (
               <div className="self-center text-[#DA6A45] animate-pulse font-mono text-xs bg-[#DA6A45]/10 rounded-full px-3 py-1 border border-[#DA6A45]/30 backdrop-blur-md flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Preparing a smarter passage â€” you can start typing now</span>
+                <span>Preparing a smarter passage — you can start typing now</span>
               </div>
             )}
 
@@ -592,14 +592,14 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             {showAIGeneratedChip && (
               <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI passage Â· {aiTopicRef.current}</span>
+                <span>AI passage · {aiTopicRef.current}</span>
               </div>
             )}
 
             {showWeakGeneratedChip && (
               <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI drill Â· targeting {weakKeysList.length} weak key{weakKeysList.length === 1 ? '' : 's'}</span>
+                <span>AI drill · targeting {weakKeysList.length} weak key{weakKeysList.length === 1 ? '' : 's'}</span>
               </div>
             )}
             <div className="relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner">
