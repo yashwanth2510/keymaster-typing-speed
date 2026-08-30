@@ -7,6 +7,7 @@ import { COMMON_WORDS, QUOTES, CODE_SNIPPETS } from '../../lib/data';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 import { soundEngine } from '../../lib/sound';
 import { saveTestResult } from '../../lib/storage';
+import { generateAIPassage, generateWeakDrill, isAiConfigured } from '../../lib/ai';
 
 interface SpeedTestProps {
   settings: TestSettings;
@@ -141,18 +142,26 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           }
         }, 28000);
         try {
-          const res = await fetch('/api/weak-key-drill', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ weakKeys: weakKeysList })
-          });
-          const data = await res.json();
+          let cleanDrill = '';
+          let drill: { source: string; text: string } = { source: '', text: '' };
+          if (isAiConfigured()) {
+            // Browser-direct Groq: works on static hosts with no backend.
+            const aiDrill = await generateWeakDrill(weakKeysList);
+            drill = { source: aiDrill.source, text: aiDrill.text };
+            cleanDrill = normalizeText(drill.text);
+          } else {
+            const res = await fetch('/api/weak-key-drill', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ weakKeys: weakKeysList })
+            });
+            const data = await res.json();
+            drill = { source: data?.source, text: typeof data?.text === 'string' ? data.text : '' };
+            cleanDrill = normalizeText(drill.text);
+          }
           if (currentReqId.current !== reqId) return;
 
-          const cleanDrill = typeof data?.text === 'string'
-            ? normalizeText(data.text)
-            : '';
-          if (data.source === 'ai' && cleanDrill.length > 5) {
+          if (drill.source === 'ai' && cleanDrill.length > 5) {
             // Only swap if the user hasn't started typing yet.
             if (!isActiveRef.current && userInputRef.current === '') {
               setTargetText(cleanDrill);
@@ -168,7 +177,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           console.error('Failed to fetch weak key drill:', err);
           if (currentReqId.current !== reqId) return;
           setWeakStatus('fallback');
-          setWeakError('network error');
+          setWeakError(err instanceof Error ? err.message : 'network error');
         } finally {
           clearTimeout(genTimer);
         }
@@ -183,7 +192,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       const hasCustomTopic = aiTopicExplicitRef.current || (topic && topic !== 'General Knowledge');
 
       // No custom topic picked yet: the AI topic prompt is open, so skip the
-      // background request — nothing meaningful to generate until the user submits.
+      // background request â€” nothing meaningful to generate until the user submits.
       if (!hasCustomTopic) {
         setAiStatus('idle');
         setAiError('');
@@ -198,22 +207,34 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           }
         }, 28000);
         try {
-          const res = await fetch('/api/generate-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              category: topic,
+          let cleanText = '';
+          let gensource = '';
+          if (isAiConfigured()) {
+            // Browser-direct Groq: works on static hosts with no backend.
+            const pass = await generateAIPassage({
+              topic,
               difficulty: settings.difficulty,
               wordCount
-            })
-          });
-          const data = await res.json();
+            });
+            cleanText = normalizeText(pass.text);
+            gensource = pass.source;
+          } else {
+            const res = await fetch('/api/generate-text', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                category: topic,
+                difficulty: settings.difficulty,
+                wordCount
+              })
+            });
+            const data = await res.json();
+            gensource = data.source;
+            cleanText = typeof data?.text === 'string' ? normalizeText(data.text) : '';
+          }
           if (currentReqId.current !== reqId) return;
 
-          const cleanText = typeof data?.text === 'string'
-            ? normalizeText(data.text)
-            : '';
-          if (data.source === 'ai' && cleanText.length > 5) {
+          if (gensource === 'ai' && cleanText.length > 5) {
             // Only swap if the user hasn't started typing yet.
             if (!isActiveRef.current && userInputRef.current === '') {
               setTargetText(cleanText);
@@ -229,7 +250,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           console.error('Failed to generate AI text:', err);
           if (currentReqId.current !== reqId) return;
           setAiStatus('fallback');
-          setAiError('network error');
+          setAiError(err instanceof Error ? err.message : 'network error');
         } finally {
           clearTimeout(genTimer);
         }
@@ -240,7 +261,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       setTargetText(shuffled.slice(0, 70).join(' '));
     }
 
-    // Focus the hidden typing input — but never steal focus from the AI topic
+    // Focus the hidden typing input â€” but never steal focus from the AI topic
     // prompt (or any other input the user is actively using).
     setTimeout(() => {
       const el = document.activeElement;
@@ -567,7 +588,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             {showLoadingPill && (
               <div className="self-center text-[#DA6A45] animate-pulse font-mono text-xs bg-[#DA6A45]/10 rounded-full px-3 py-1 border border-[#DA6A45]/30 backdrop-blur-md flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Preparing a smarter passage — you can start typing now</span>
+                <span>Preparing a smarter passage â€” you can start typing now</span>
               </div>
             )}
 
@@ -592,14 +613,14 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             {showAIGeneratedChip && (
               <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI passage · {aiTopicRef.current}</span>
+                <span>AI passage â€” {aiTopicRef.current}</span>
               </div>
             )}
 
             {showWeakGeneratedChip && (
               <div className="self-center flex items-center gap-1.5 text-emerald-700 font-mono text-xs bg-emerald-50 rounded-full px-3 py-1 border border-emerald-600/25 backdrop-blur-md">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>AI drill · targeting {weakKeysList.length} weak key{weakKeysList.length === 1 ? '' : 's'}</span>
+                <span>AI drill â€” targeting {weakKeysList.length} weak key{weakKeysList.length === 1 ? '' : 's'}</span>
               </div>
             )}
             <div className="relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner">

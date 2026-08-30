@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Timer, FileText, Quote, Code, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Timer, FileText, Quote, Code, Sparkles, AlertTriangle, RefreshCw, KeyRound, CheckCircle2 } from 'lucide-react';
 import { TestMode, TimeOption, WordOption, TestSettings } from '../../types';
+import { getAiKey, saveAiKey, isAiConfigured } from '../../lib/ai';
 
 interface TestControlsProps {
   settings: TestSettings;
@@ -29,6 +30,22 @@ export const TestControls: React.FC<TestControlsProps> = ({
   // If the app opens directly in AI Topic mode (persisted setting), open the topic
   // prompt right away so users immediately see where to enter their topic.
   const [showAIPrompt, setShowAIPrompt] = useState(settings.mode === 'ai');
+
+  // Optional user-provided API key that enables fully browser-based AI generation,
+  // so the app keeps working on static hosts (GitHub Pages) with no backend.
+  const [aiKey, setAiKey] = useState(getAiKey);
+  const [keySaved, setKeySaved] = useState(false);
+
+  const handleSaveAiKey = () => {
+    saveAiKey(aiKey);
+    setKeySaved(true);
+    setTimeout(() => setKeySaved(false), 2000);
+  };
+
+  const handleClearAiKey = () => {
+    saveAiKey('');
+    setAiKey('');
+  };
 
   const submitPendingRef = useRef(false);
 
@@ -204,43 +221,84 @@ export const TestControls: React.FC<TestControlsProps> = ({
 
       {/* AI Custom Prompt Modal/Drawer */}
       {showAIPrompt && (
-        <form onSubmit={handleAISubmit} className="w-full max-w-md bg-white/95 border border-[#DA6A45]/30 rounded-2xl p-4 shadow-xl backdrop-blur-2xl flex flex-col gap-3 animate-in fade-in">
-          <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-2">
-            <div className="flex items-center gap-2 text-[#2C2825] font-extrabold text-sm">
-              <Sparkles className="w-4 h-4 text-[#DA6A45]" />
-              <span>Generate Custom AI Practice Text</span>
+        <div className="w-full max-w-md flex flex-col gap-3 animate-in fade-in">
+          <form onSubmit={handleAISubmit} className="w-full bg-white/95 border border-[#DA6A45]/30 rounded-2xl p-4 shadow-xl backdrop-blur-2xl flex flex-col gap-3">
+            <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-2">
+              <div className="flex items-center gap-2 text-[#2C2825] font-extrabold text-sm">
+                <Sparkles className="w-4 h-4 text-[#DA6A45]" />
+                <span>Generate Custom AI Practice Text</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAIPrompt(false)}
+                className="text-[#78726A] hover:text-[#2C2825] text-xs font-bold"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowAIPrompt(false)}
-              className="text-[#78726A] hover:text-[#2C2825] text-xs font-bold"
-            >
-              ✕
-            </button>
-          </div>
 
-          <p className="text-xs text-[#78726A] leading-relaxed">
-            Enter any topic (e.g., "Cyberpunk Neo-Tokyo", "Cybersecurity Basics", "Astronomy") to generate practice text with AI!
-          </p>
+            <p className="text-xs text-[#78726A] leading-relaxed">
+              Enter any topic (e.g., "Cyberpunk Neo-Tokyo", "Cybersecurity Basics", "Astronomy") to generate practice text with AI!
+            </p>
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={customTopic}
-              onChange={(e) => setCustomTopic(e.target.value)}
-              placeholder="e.g. Space Exploration, Physics..."
-              className="flex-1 bg-[#FAF8F5] border border-[#E5DFD5] rounded-xl px-3 py-2 text-sm text-[#2C2825] placeholder:text-[#A0988E] focus:outline-none focus:border-[#DA6A45] backdrop-blur-md font-medium"
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={isLoadingAIText || !customTopic.trim()}
-              className="px-4 py-2 bg-[#DA6A45] hover:bg-[#C85A37] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-2xs shrink-0"
-            >
-              {isLoadingAIText ? 'Generating...' : 'Generate'}
-            </button>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customTopic}
+                onChange={(e) => setCustomTopic(e.target.value)}
+                placeholder="e.g. Space Exploration, Physics..."
+                className="flex-1 bg-[#FAF8F5] border border-[#E5DFD5] rounded-xl px-3 py-2 text-sm text-[#2C2825] placeholder:text-[#A0988E] focus:outline-none focus:border-[#DA6A45] backdrop-blur-md font-medium"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={isLoadingAIText || !customTopic.trim()}
+                className="px-4 py-2 bg-[#DA6A45] hover:bg-[#C85A37] disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-2xs shrink-0"
+              >
+                {isLoadingAIText ? 'Generating...' : 'Generate'}
+              </button>
+            </div>
+          </form>
+
+          {/* Optional in-browser AI provider key (stored only in this browser) */}
+          <div className="w-full bg-white/85 border border-[#E5DFD5] rounded-2xl p-4 shadow-lg backdrop-blur-2xl flex flex-col gap-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-[#2C2825] font-bold text-xs">
+                <KeyRound className="w-3.5 h-3.5 text-[#DA6A45]" />
+                <span>Free In-Browser AI ({isAiConfigured() ? 'Enabled' : 'Not set'})</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-[#78726A] leading-relaxed">
+              Pitched past your limit? Hosted AI needs a backend. Paste a free Groq key below to generate topics, weak drills and coaching directly from your browser — works on any static host (GitHub Pages). Get one free at console.groq.com/keys (no card).
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="password"
+                value={aiKey}
+                onChange={(e) => setAiKey(e.target.value)}
+                placeholder="gsk_..."
+                className="flex-1 bg-[#FAF8F5] border border-[#E5DFD5] rounded-xl px-3 py-2 text-sm text-[#2C2825] placeholder:text-[#A0988E] focus:outline-none focus:border-[#DA6A45] backdrop-blur-md font-mono"
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+              <button
+                type="button"
+                onClick={handleSaveAiKey}
+                className="px-3 py-2 bg-[#2C2825] hover:bg-[#3A3532] text-white text-xs font-bold rounded-xl transition-all shadow-2xs shrink-0"
+              >
+                {keySaved ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : 'Save'}
+              </button>
+              {aiKey && (
+                <button
+                  type="button"
+                  onClick={handleClearAiKey}
+                  className="px-3 py-2 bg-[#F2ECE1] hover:bg-[#EBE3D5] text-[#2C2825] text-xs font-bold rounded-xl transition-all shrink-0 border border-[#E5DFD5]"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
-        </form>
+        </div>
       )}
     </div>
   );

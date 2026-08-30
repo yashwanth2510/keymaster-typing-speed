@@ -8,11 +8,15 @@ A typing speed test with **AI-powered practice passages**, weak-key drills, AI c
 
 👉 **https://keymaster-typing-studio.onrender.com**
 
-This is the recommended URL to test all features — the AI topic generator, weak-key drills and AI coach all require the Node backend that this host runs.
+This is the recommended URL to test all features — the AI topic generator, weak-key drills and AI coach run through the Node backend on this host.
 
-Static demos (no AI — GitHub Pages can't run `/api/*`):
+Static host (GitHub Pages):
 
 - https://yashwanth2510.github.io/keymaster-typing-speed/
+- AI works here too! Open **AI Topic** mode and paste a free Groq API key
+  (console.groq.com/keys, no card) into the **"Free In-Browser AI"** box. The key is stored
+  only in your browser and powers topic passages, weak drills and coaching directly from the
+  page — no backend needed.
 
 ## ✨ Features
 
@@ -46,9 +50,15 @@ The app runs at http://localhost:3000.
 
 ## Deploy (GitHub repo + Render)
 
-**Important:** GitHub Pages cannot run the AI features. This app needs a Node server
-for the `/api/*` Gemini endpoints. Deploy the repo to **Render** (free tier) instead,
-which runs a real Node backend. Your code stays on GitHub.
+Two AI paths are supported:
+
+- **Node backend (default):** the app calls `/api/*` Gemini endpoints. Deploy to
+  **Render** (free tier) so it has a real backend (steps below).
+- **In-browser AI (optional):** on any static host (like GitHub Pages) the frontend can
+  call Groq directly when the user pastes their own free key in **AI Topic mode**. No server
+  needed — that's how the github.io demo gets AI.
+
+### Deploy to Render
 
 1. Push this folder to a new GitHub repository:
    - `git init`
@@ -65,11 +75,10 @@ which runs a real Node backend. Your code stays on GitHub.
    (get one free at https://aistudio.google.com/apikey)
 5. Render builds and deploys automatically. Every future `git push` redeploys.
 6. Your app is live at the URL Render gives you (e.g. `https://keymaster-typing-studio.onrender.com`).
-   The AI features only work on that Node-hosted URL, not on a static github.io page.
 
 Deploys elsewhere (Railway, Cloud Run, Fly.io) also work the same way — `npm run build`, then
 `NODE_ENV=production node dist/server.cjs`, with `GEMINI_API_KEY` set as an environment variable.
 
 ## Tech Stack
 
-React 19 + Vite + TypeScript, Express server, Gemini API (`@google/genai`), Recharts, Canvas Confetti.
+React 19 + Vite + TypeScript, Express server, Gemini API (`@google/genai`), optional in-browser Groq client, Recharts, Canvas Confetti.
