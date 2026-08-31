@@ -233,7 +233,7 @@ export const Header: React.FC<HeaderProps> = ({
             href="https://buymeacoffee.com/yashwanthtadikonda"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg border transition-all bg-[#FFDD00]/25 text-[#8A6D00] border-[#FFDD00]/40 hover:bg-[#FFDD00]/40 hover:-translate-y-0.5"
+            className="p-2 rounded-lg border transition-all bg-[#DA6A45]/10 text-[#DA6A45] border-[#DA6A45]/25 hover:bg-[#DA6A45]/20 hover:border-[#DA6A45]/45 hover:-translate-y-0.5"
             title="Buy me a coffee"
             aria-label="Buy me a coffee"
           >
