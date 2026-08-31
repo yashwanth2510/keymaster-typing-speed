@@ -93,6 +93,65 @@
   animation: pulse-slow-reverse 15s ease-in-out infinite;
 }
 
+/* Rising steam wisps for the Buy Me a Coffee icon */
+@keyframes coffee-steam {
+  0% {
+    transform: translateY(0) translateX(0) scaleX(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  45% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(-16px) translateX(var(--steam-drift, 4px)) scaleX(1.6);
+    opacity: 0;
+  }
+}
+
+.coffee-steam-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coffee-steam .coffee-steam-wisp {
+  position: absolute;
+  bottom: 70%;
+  left: 50%;
+  width: 2px;
+  height: 10px;
+  border-radius: 9999px;
+  background: linear-gradient(to top, rgba(218, 106, 69, 0), rgba(218, 106, 69, 0.7));
+  filter: blur(0.5px);
+  pointer-events: none;
+  transform-origin: center bottom;
+  animation: coffee-steam 2.6s ease-out infinite;
+}
+
+.coffee-steam .coffee-steam-wisp:nth-child(1) {
+  --steam-drift: -5px;
+  margin-left: -4px;
+  animation-delay: 0s;
+}
+
+.coffee-steam .coffee-steam-wisp:nth-child(2) {
+  --steam-drift: 5px;
+  margin-left: -1px;
+  animation-delay: 0.85s;
+  height: 8px;
+}
+
+.coffee-steam .coffee-steam-wisp:nth-child(3) {
+  --steam-drift: 0px;
+  margin-left: -6px;
+  animation-delay: 1.7s;
+  height: 11px;
+}
+
 /* Glass Scrollbar for Key Master Warm Light Theme */
 ::-webkit-scrollbar {
   width: 8px;
