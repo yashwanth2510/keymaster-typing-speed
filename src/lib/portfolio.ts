@@ -1,12 +1,12 @@
 /**
  * Encrypted Portfolio Link Module
  * Handles encrypted storage and runtime decryption for creator attribution:
- * Yashwanth Tadikonda (http://yashwanthtadikondaportfolio.netlify.app/)
+ * Yashwanth Tadikonda (https://yashwanth2510.github.io/yashwanth_tadikonda_portfolio/)
  */
 
 // Multi-stage cipher payload: XOR-transformed hex stream encoded in Base64
 const ENCRYPTED_PAYLOAD =
-  'MjMzZjNmM2I3MTY0NjQzMjJhMzgyMzNjMmEyNTNmMjMzZjJhMmYyMjIwMjQyNTJmMmEzYjI0MzkzZjJkMjQyNzIyMjQ2NTI1MmUzZjI3MjIyZDMyNjUyYTNiM2I2NA==';
+  'MjMzZjNmM2IzODcxNjQ2NDMyMmEzODIzM2MyYTI1M2YyMzc5N2U3YTdiNjUyYzIyM2YyMzNlMjk2NTIyMjQ2NDMyMmEzODIzM2MyYTI1M2YyMzE0M2YyYTJmMjIyMDI0MjUyZjJhMTQzYjI0MzkzZjJkMjQyNzIyMjQ2NA==';
 const CIPHER_KEY = 0x4b; // 'K' for KeyMaster
 
 /**
@@ -29,7 +29,7 @@ export function getDecryptedPortfolioUrl(): string {
     return decrypted;
   } catch (error) {
     // Safe fallback to prevent application breakage
-    return 'http://yashwanthtadikondaportfolio.netlify.app/';
+    return 'https://yashwanth2510.github.io/yashwanth_tadikonda_portfolio/';
   }
 }
 
