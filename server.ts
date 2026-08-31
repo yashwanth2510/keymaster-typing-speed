@@ -336,7 +336,35 @@ Return strictly valid JSON like: {"summary": "...", "tips": ["...", "...", "..."
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
+    startSelfKeepAlive();
   });
+}
+
+// Render free-tier instances spin down after ~15 min without incoming traffic,
+// which surfaces as a slow "Awaking" interstitial on first visit instead of the
+// site. GitHub's */10 scheduled cron is unreliable (runs frequently get dropped),
+// so the app also keeps itself warm from the inside: a periodic request through
+// Render's public load balancer counts as incoming traffic and resets the idle
+// timer, so the site is always already awake.
+const SELF_KEEP_ALIVE_INTERVAL_MS = 7 * 60 * 1000;
+function startSelfKeepAlive() {
+  const externalUrl = process.env.RENDER_EXTERNAL_URL;
+  if (!externalUrl) return;
+  let consecutiveFailures = 0;
+  const ping = () => {
+    fetch(`${externalUrl}/api/health`)
+      .then(() => {
+        consecutiveFailures = 0;
+      })
+      .catch(() => {
+        consecutiveFailures += 1;
+      });
+  };
+  // Back off after repeated failures (e.g. deploy restart windows) to avoid a
+  // self-inflicted error loop, but keep trying so a healthy instance stays warm.
+  setInterval(() => {
+    if (consecutiveFailures < 6) ping();
+  }, SELF_KEEP_ALIVE_INTERVAL_MS);
 }
 
 function getFallbackText(category: string, difficulty: string): string {

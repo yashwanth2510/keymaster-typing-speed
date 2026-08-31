@@ -31,6 +31,8 @@ class SoundEngine {
   private samples: Partial<Record<KeySoundProfile, SamplePack>> = {};
   private samplesLoading: boolean = false;
   private releaseListenerAttached: boolean = false;
+  private pendingKeys: { key: string; at: number }[] = [];
+  private pendingResumePending: boolean = false;
 
   // Ambience audio properties
   private ambienceEnabled: boolean = false;
@@ -68,6 +70,10 @@ class SoundEngine {
         }
       });
     }
+    // Pre-warm the AudioContext and decode the real keyboard samples as early as
+    // possible so key presses are audible from the very first moment audio is
+    // allowed (creating a suspended context is legal before any user gesture).
+    void this.loadSamples();
   }
 
   private initCtx() {
@@ -685,14 +691,56 @@ class SoundEngine {
     void this.loadSamples();
     if (!this.ctx) return;
 
-    // Browsers start AudioContext suspended (autoplay policy). Only schedule
-    // oscillators once the context is actually running, otherwise the sound is
-    // silently dropped (e.g. the loading-screen keystroke sounds).
+    // Browsers start AudioContext suspended (autoplay policy). Queue keystrokes
+    // and play them back in their original rhythm the moment audio is unlocked
+    // (e.g. the loading-screen "KEYMASTER" sequence is replayed as a burst as
+    // soon as the user's first click/tap makes the context runnable).
     if (this.ctx.state !== 'running') {
-      this.ctx.resume().then(() => this.doKeyPress(key)).catch(() => {});
+      this.queueOrPlay(key);
       return;
     }
     this.doKeyPress(key);
+  }
+
+  private queueOrPlay(key: string) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (ctx.state === 'running') {
+      this.doKeyPress(key);
+      return;
+    }
+    if (this.pendingKeys.length < 60) {
+      this.pendingKeys.push({ key, at: performance.now() });
+    }
+    if (this.pendingResumePending) return;
+    this.pendingResumePending = true;
+    ctx
+      .resume()
+      .then(() => {
+        this.pendingResumePending = false;
+        this.drainPendingKeys();
+      })
+      .catch(() => {
+        this.pendingResumePending = false;
+        this.drainPendingKeys();
+        this.pendingKeys = [];
+      });
+  }
+
+  private drainPendingKeys() {
+    const ctx = this.ctx;
+    if (!ctx || this.pendingKeys.length === 0) return;
+    const first = this.pendingKeys.shift();
+    if (!first) return;
+    const start = first.at;
+    this.doKeyPress(first.key);
+    for (const p of this.pendingKeys) {
+      const delay = Math.max(0, p.at - start);
+      window.setTimeout(() => {
+        if (this.ctx && this.ctx.state === 'running') this.doKeyPress(p.key);
+      }, delay);
+    }
+    this.pendingKeys = [];
   }
 
   public playKeyRelease(key: string = '') {
@@ -706,6 +754,7 @@ class SoundEngine {
 
   private async loadSamples() {
     if (this.samplesLoading || Object.keys(this.samples).length > 0) return;
+    this.initCtx();
     if (!this.ctx) return;
     this.samplesLoading = true;
     try {
