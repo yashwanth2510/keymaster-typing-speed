@@ -2,10 +2,35 @@
 
 export type AmbienceSoundType = 'forest' | 'crickets' | 'stream' | 'rain' | 'waves' | 'fireplace' | 'typing' | 'cafe' | 'off';
 
+export type KeySoundProfile = 'cherry-blue' | 'cherry-red' | 'tactile' | 'typewriter' | 'pop' | 'silent';
+
+type SamplePack = {
+  down: AudioBuffer[];
+  up: AudioBuffer[];
+  space?: AudioBuffer;
+  enter?: AudioBuffer;
+  backspace?: AudioBuffer;
+  upSpace?: AudioBuffer;
+  upEnter?: AudioBuffer;
+  upBackspace?: AudioBuffer;
+};
+
+// Real recorded switch sounds (MIT licensed, see public/audio/CREDITS.md)
+const SAMPLE_PACKS: Record<Exclude<KeySoundProfile, 'silent'>, string> = {
+  'cherry-blue': 'cherry-mx-blue',
+  'cherry-red': 'nk-cream',
+  'tactile': 'holy-panda',
+  'typewriter': 'turquoise',
+  'pop': 'holy-panda',
+};
+
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private enabled: boolean = true;
-  private profile: 'cherry-blue' | 'cherry-red' | 'tactile' | 'typewriter' | 'pop' | 'silent' = 'cherry-blue';
+  private profile: KeySoundProfile = 'cherry-blue';
+  private samples: Partial<Record<KeySoundProfile, SamplePack>> = {};
+  private samplesLoading: boolean = false;
+  private releaseListenerAttached: boolean = false;
 
   // Ambience audio properties
   private ambienceEnabled: boolean = false;
@@ -21,6 +46,7 @@ class SoundEngine {
     if (typeof window !== 'undefined') {
       const handleFirstInteraction = () => {
         this.initCtx();
+        void this.loadSamples();
         if (this.ambienceEnabled && this.ambienceSound !== 'off' && !this.ambienceGainNode) {
           this.startAmbience();
         }
@@ -29,6 +55,7 @@ class SoundEngine {
       window.addEventListener('keydown', handleFirstInteraction, { passive: true });
       window.addEventListener('mousemove', handleFirstInteraction, { passive: true });
       this.hasInteractionListener = true;
+      this.attachReleaseListener();
 
       // Browsers suspend WebAudio while a tab is hidden. When the user returns,
       // re-connect the context so typing sounds and ambience keep working.
@@ -59,7 +86,7 @@ class SoundEngine {
     this.enabled = enabled;
   }
 
-  public setProfile(profile: 'cherry-blue' | 'cherry-red' | 'tactile' | 'typewriter' | 'pop' | 'silent') {
+  public setProfile(profile: KeySoundProfile) {
     this.profile = profile;
   }
 
@@ -655,6 +682,7 @@ class SoundEngine {
   public playKeyPress(key: string = '', overrideEnabled: boolean = false) {
     if ((!this.enabled && !overrideEnabled) || (this.profile === 'silent' && !overrideEnabled)) return;
     this.initCtx();
+    void this.loadSamples();
     if (!this.ctx) return;
 
     // Browsers start AudioContext suspended (autoplay policy). Only schedule
@@ -667,7 +695,120 @@ class SoundEngine {
     this.doKeyPress(key);
   }
 
+  public playKeyRelease(key: string = '') {
+    if (!this.enabled || this.profile === 'silent') return;
+    this.initCtx();
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    const pack = this.samples[this.profile];
+    if (!pack) return;
+    this.playSample(pack, false, key);
+  }
+
+  private async loadSamples() {
+    if (this.samplesLoading || Object.keys(this.samples).length > 0) return;
+    if (!this.ctx) return;
+    this.samplesLoading = true;
+    try {
+      await Promise.all(
+        (Object.entries(SAMPLE_PACKS) as [KeySoundProfile, string][]).map(async ([prof, folder]) => {
+          const pack = await this.loadPack(folder);
+          if (pack) this.samples[prof] = pack;
+        }),
+      );
+    } catch {
+      // Samples are optional; the synthesized fallback keeps the app functional.
+    } finally {
+      this.samplesLoading = false;
+    }
+  }
+
+  private async loadPack(folder: string): Promise<SamplePack | null> {
+    const ctx = this.ctx;
+    if (!ctx) return null;
+    const base = `${import.meta.env.BASE_URL}audio/keys/${folder}/`;
+    const decode = async (name: string): Promise<AudioBuffer | null> => {
+      try {
+        const res = await fetch(base + name);
+        if (!res.ok) return null;
+        const buf = await res.arrayBuffer();
+        return await ctx.decodeAudioData(buf);
+      } catch {
+        return null;
+      }
+    };
+
+    const down = (
+      await Promise.all([1, 2, 3, 4, 5].map(n => decode(`down/generic_${n}.wav`)))
+    ).filter((b): b is AudioBuffer => !!b);
+    if (!down.length) return null;
+    const up = (await Promise.all([decode('up/generic_1.wav')])).filter((b): b is AudioBuffer => !!b);
+    const [space, enter, backspace, upSpace, upEnter, upBackspace] = await Promise.all([
+      decode('down/space.wav'), decode('down/enter.wav'), decode('down/backspace.wav'),
+      decode('up/space.wav'), decode('up/enter.wav'), decode('up/backspace.wav'),
+    ]);
+    return { down, up, space, enter, backspace, upSpace, upEnter, upBackspace };
+  }
+
+  private pickSample(primary: AudioBuffer[], secondary?: AudioBuffer[]): AudioBuffer | undefined {
+    const arr = primary.length ? primary : secondary ?? [];
+    if (!arr.length) return undefined;
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  private playSample(pack: SamplePack | undefined, isDown: boolean, key: string): boolean {
+    const ctx = this.ctx;
+    if (!pack || !ctx || ctx.state !== 'running') return false;
+
+    const now = ctx.currentTime;
+    const space = key === ' ' || key === 'Space';
+    const enter = key === 'Enter' || key === '\n';
+    const backspace = key === 'Backspace';
+
+    let buffer: AudioBuffer | undefined;
+    if (isDown) {
+      buffer = space ? (pack.space ?? this.pickSample(pack.down))
+        : enter ? (pack.enter ?? this.pickSample(pack.down))
+        : backspace ? (pack.backspace ?? this.pickSample(pack.down))
+        : this.pickSample(pack.down);
+    } else {
+      buffer = space ? (pack.upSpace ?? pack.space)
+        : enter ? (pack.upEnter ?? pack.enter)
+        : backspace ? (pack.upBackspace ?? pack.backspace)
+        : this.pickSample(pack.up, pack.down);
+    }
+    if (!buffer) return false;
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = 0.96 + Math.random() * 0.08;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.85 + Math.random() * 0.3, now);
+    src.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+    src.stop(now + buffer.duration + 0.02);
+    return true;
+  }
+
+  private attachReleaseListener() {
+    if (this.releaseListenerAttached || typeof document === 'undefined') return;
+    this.releaseListenerAttached = true;
+    document.addEventListener('keyup', (e) => {
+      if (!this.enabled || this.profile === 'silent') return;
+      const k = e.key;
+      if (k.length > 1 && k !== 'Backspace' && k !== 'Enter' && k !== 'Space') return;
+      this.playKeyRelease(k);
+    });
+  }
+
   private doKeyPress(key: string = '') {
+    if (!this.ctx) return;
+    if (this.profile === 'silent') return;
+    if (this.playSample(this.samples[this.profile], true, key)) return;
+    this.playSyntheticKeyPress(key);
+  }
+
+  private playSyntheticKeyPress(key: string = '') {
     if (!this.ctx) return;
 
     const now = this.ctx.currentTime;
