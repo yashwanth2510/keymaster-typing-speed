@@ -24,50 +24,50 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ onFinished }) => {
   const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
-    let index = 0;
     const totalChars = TARGET_PHRASE.length;
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
-    // Sequence timing for character typing
-    const timer = setInterval(() => {
-      if (index < totalChars) {
-        const currentChar = TARGET_PHRASE[index];
-        setTypedText(prev => prev + currentChar);
-        setActiveKey(currentChar);
-        
-        // Play key press sound
-        soundEngine.playKeyPress(currentChar);
+    const typeChar = (index: number) => {
+      // Clamp so the text can never exceed the exact phrase length.
+      const shown = TARGET_PHRASE.slice(0, Math.min(index + 1, totalChars));
+      setTypedText(shown);
+      setActiveKey(TARGET_PHRASE[index] ?? null);
+      soundEngine.playKeyPress(TARGET_PHRASE[index] ?? '');
 
-        // Update progress & dynamic status text
-        const currentProgress = Math.round(((index + 1) / totalChars) * 85);
-        setProgress(currentProgress);
+      const currentProgress = Math.round(((index + 1) / totalChars) * 85);
+      setProgress(currentProgress);
 
-        if (index === 2) setStatusMessage('Calibrating touch sensors...');
-        if (index === 5) setStatusMessage('Loading Key Master themes & soundscapes...');
+      if (index === 2) setStatusMessage('Calibrating touch sensors...');
+      if (index === 5) setStatusMessage('Loading Key Master themes & soundscapes...');
+    };
 
-        // Briefly release key press highlight
-        setTimeout(() => setActiveKey(null), 120);
+    // Type the phrase one character at a time using a chain of timeouts so a
+    // single deterministic sequence is produced and can never overshoot or
+    // double-append characters.
+    for (let i = 0; i < totalChars; i++) {
+      timers.push(setTimeout(() => typeChar(i), i * 180));
+    }
 
-        index++;
-      } else {
-        clearInterval(timer);
-        
-        // Final completion stage
+    // Final completion stage (runs a little after the last character).
+    timers.push(
+      setTimeout(() => {
         setActiveKey('SPACE');
         soundEngine.playKeyPress(' ');
-        setTimeout(() => setActiveKey(null), 150);
+        timers.push(setTimeout(() => setActiveKey(null), 150));
 
         setProgress(100);
         setStatusMessage('Engine Ready!');
         setIsDone(true);
 
-        // Delay before fading out
-        setTimeout(() => {
-          if (onFinished) onFinished();
-        }, 400);
-      }
-    }, 180); // ~180ms per character typing rhythm
+        timers.push(
+          setTimeout(() => {
+            if (onFinished) onFinished();
+          }, 400),
+        );
+      }, totalChars * 180 + 60),
+    );
 
-    return () => clearInterval(timer);
+    return () => timers.forEach(clearTimeout);
   }, [onFinished]);
 
   return (
