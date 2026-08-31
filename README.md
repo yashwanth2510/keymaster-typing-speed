@@ -1,6 +1,6 @@
 # KeyMaster — Typing Speed Test & Practice Studio
 
-A typing speed test with **AI-powered practice passages**, weak-key drills, AI coaching, a full typing arcade, **real recorded mechanical keyboard sounds**, daily streaks, and a Buy Me a Coffee button. AI features are powered by the OpenRouter/Gemini APIs.
+A typing speed test with **AI-powered practice passages**, weak-key drills, AI coaching, a full typing arcade, **real recorded mechanical keyboard sounds**, daily streaks, and a Buy Me a Coffee button. AI features are powered by the **OpenRouter API** (with Gemini as a fallback).
 
 ## 🚀 Try It Live
 
@@ -40,9 +40,13 @@ Static host (GitHub Pages) — frontend-only mirror:
 
 1. Install dependencies:
    `npm install`
-2. Set the `GEMINI_API_KEY` in `.env.local` to your Gemini API key:
-   `Get-Content .env.example | Set-Content .env.local` (or copy manually)
-   Then edit `.env.local` and replace `MY_GEMINI_API_KEY`.
+2. Set an AI key in `.env.local`:
+   - **OpenRouter (recommended):** set `OPENROUTER_API_KEY` (any provider key — a free-tier
+     Llama model `meta-llama/llama-3.3-70b-instruct` is the default, overridable via
+     `OPENROUTER_MODEL`). OpenRouter is tried first.
+   - **Gemini:** set `GEMINI_API_KEY` — used only if OpenRouter is unavailable.
+   `Get-Content .env.example | Set-Content .env.local` (or copy manually),
+   then edit `.env.local` and replace the placeholder key(s).
 3. Run the app:
    `npm run dev`
 
@@ -50,12 +54,13 @@ The app runs at http://localhost:3000.
 
 ## Deploy (GitHub repo + Render)
 
-The app calls `/api/*` endpoints at the Node backend. AI generation supports either provider —
-set `GEMINI_API_KEY` or `OPENROUTER_API_KEY` (drop any provider key in the OpenRouter field; a
-free-tier Llama model is the default). The key powers AI topics, weak-key drills and coaching,
-and falls back to built-in content only when no key is configured or a request fails. Deploy
-the repo to **Render** (free tier) so it has a real backend — the frontend build is served from
-the same host, so you only need this one link.
+The app calls `/api/*` endpoints at the Node backend. AI generation is **OpenRouter-first**:
+set `OPENROUTER_API_KEY` (drop any provider key in the OpenRouter field; a free-tier
+`meta-llama/llama-3.3-70b-instruct` model is the default, overridable via
+`OPENROUTER_MODEL`, e.g. `openai/gpt-4o-mini`). Gemini (`GEMINI_API_KEY`) is used only as a
+fallback when OpenRouter is unavailable or fails. Content falls back to built-in text only when
+no key is configured or every request fails. Deploy the repo to **Render** (free tier) so it has
+a real backend — the frontend build is served from the same host, so you only need this one link.
 
 ### Deploy to Render
 
@@ -70,8 +75,7 @@ the same host, so you only need this one link.
 3. Click **New > Blueprint** and connect your GitHub repo.
    Render detects `render.yaml` automatically and creates the web service.
 4. In the Render dashboard, open the service → **Environment**, add:
-   - Key: `GEMINI_API_KEY` — value: your Gemini API key
-   (get one free at https://aistudio.google.com/apikey)
+   - Key: `OPENROUTER_API_KEY` — value: your OpenRouter API key (get one free at https://openrouter.ai/keys)
 5. Render builds and deploys automatically. Every future `git push` redeploys.
 6. Your app is live at the URL Render gives you (e.g. `https://keymaster-typing-studio.onrender.com`).
 
@@ -80,4 +84,4 @@ Deploys elsewhere (Railway, Cloud Run, Fly.io) also work the same way — `npm r
 
 ## Tech Stack
 
-React 19 + Vite + TypeScript, Express server, OpenRouter/Gemini API (`@google/genai`), Recharts, Canvas Confetti, Web Audio (real key samples), TailwindCSS v4.
+React 19 + Vite + TypeScript, Express server, OpenRouter API with Gemini fallback (`@google/genai`), Recharts, Canvas Confetti, Web Audio (real key samples), TailwindCSS v4.
