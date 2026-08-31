@@ -113,13 +113,16 @@ async function startServer() {
   // most one call per provider at a time and stop at the first usable response.
   async function generateWithGeminiFallback(
     prompt: string,
-    config?: { responseMimeType?: string }
+    config?: { responseMimeType?: string; isValid?: (text: string) => boolean }
   ): Promise<string | null> {
     const cached = cacheGet(prompt);
     if (cached) return cached;
 
+    const accepted = (t: string | null): string | null =>
+      t && (!config?.isValid || config.isValid(t)) ? t : null;
+
     // 1. Prefer OpenRouter when its key is configured (e.g. free-tier Llama).
-    const openRouterText = await generateWithOpenRouter(prompt, config);
+    const openRouterText = accepted(await generateWithOpenRouter(prompt, config));
     if (openRouterText) {
       lastGeminiError = null;
       cacheSet(prompt, openRouterText);
@@ -145,7 +148,7 @@ async function startServer() {
               : undefined,
           }).then((response) => {
             const t = response.text?.trim().replace(/^["']|["']$/g, '');
-            return t && t.length > 5 ? t : null;
+            return accepted(t && t.length > 5 ? t : null);
           }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), PER_MODEL_TIMEOUT_MS)),
         ]);
@@ -245,16 +248,22 @@ Important constraints:
     const formattedKeys = weakKeys.slice(0, 5).join(', ');
     const prompt = `Create a typing exercise text that heavily emphasizes these specific target letters/characters: [${formattedKeys}].
 The text should be a meaningful sequence of real English words or pseudo-words that forces the typist to repeatedly press the target keys: ${formattedKeys}.
+Use varied vocabulary: never repeat the same word more than twice, and mix in short common connecting words to form real sentences.
 Total length: MUST be around 25-35 words. Do NOT stop after one sentence - keep producing words and short sentences until you have at least 25 words.
 Return ONLY the raw text without commentary or formatting.`;
 
-    const drillText = await generateWithGeminiFallback(prompt);
+    let drillText = await generateWithGeminiFallback(prompt, { isValid: isVariedText });
+
+    if (!drillText) {
+      const retryPrompt = `${prompt}\nIMPORTANT: Vary your vocabulary. Do not repeat any single word more than twice.`;
+      drillText = await generateWithGeminiFallback(retryPrompt, { isValid: isVariedText });
+    }
 
     if (drillText) {
       return res.json({ text: drillText, source: 'ai' });
     }
 
-    const staleGood = lastGoodText.get(prompt);
+    const staleGood = lastGoodText.get(prompt) || lastGoodText.get(`${prompt}\nIMPORTANT: Vary your vocabulary. Do not repeat any single word more than twice.`);
     if (staleGood) {
       return res.json({ text: staleGood, source: 'ai' });
     }
@@ -374,6 +383,28 @@ function getFallbackText(category: string, difficulty: string): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
+// Rejects AI text that repeats the same word over and over (e.g. a model spamming
+// one target-key word like "fizz fizz fizz...") so drills stay varied and readable.
+function isVariedText(text: string): boolean {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9']/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 0);
+  if (words.length < 5) return false;
+
+  const freq = new Map<string, number>();
+  let maxFreq = 0;
+  for (const w of words) {
+    const n = (freq.get(w) ?? 0) + 1;
+    freq.set(w, n);
+    if (n > maxFreq) maxFreq = n;
+  }
+  const uniqueRatio = freq.size / words.length;
+  const maxAllowed = Math.max(3, Math.floor(words.length * 0.2));
+  return uniqueRatio >= 0.5 && maxFreq <= maxAllowed;
+}
+
 function generateFallbackWeakKeyDrill(keys: string[]): string {
   if (!keys || keys.length === 0) {
     return "the quick brown fox jumps over the lazy dog as fast as lightning strikes through stormy weather";
@@ -397,21 +428,24 @@ function generateFallbackWeakKeyDrill(keys: string[]): string {
 
   const pool = matchingWords.length >= 8 ? matchingWords : WORD_BANK;
 
-  // Cycle words that exercise the target keys to build a ~30 word drill so the
-  // practice session has enough length to be useful even without AI.
+  // Cycle unique words that exercise the target keys to build a ~25 word drill so
+  // the practice session has enough length to be useful even without AI.
   const words: string[] = [];
   let i = 0;
-  while (words.length < 30) {
+  while (words.length < 25) {
     const word = pool[i % pool.length];
+    if (!word) break;
     if (!words.includes(word)) words.push(word);
     i += 1;
-    if (i > pool.length * 3) break;
+    if (i > pool.length * 4) break;
   }
-  if (words.length < 10) {
-    words.push("steady", "rhythm", "clean", "accuracy", "muscle", "memory", "finger", "motion");
+  const FILLER = ["steady", "rhythm", "clean", "accuracy", "muscle", "memory", "finger", "motion", "type", "each", "key", "with", "care", "focus", "again", "error", "repair"];
+  for (const w of FILLER) {
+    if (words.length >= 25) break;
+    if (!words.includes(w)) words.push(w);
   }
 
-  return `focus on target keys (${cleanKeys.join(' ')}): ` + words.slice(0, 30).join(' ');
+  return `focus on target keys (${cleanKeys.join(' ')}): ` + words.slice(0, 25).join(' ');
 }
 
 function getStaticAdvice(wpm: number, accuracy: number, errorKeys: string[]) {
