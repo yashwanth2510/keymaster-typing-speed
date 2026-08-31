@@ -675,107 +675,102 @@ class SoundEngine {
     // Space key has a deeper thump sound
     const isSpace = key === ' ' || key === 'Space';
 
-    if (this.profile === 'cherry-blue') {
-      // High click + metallic resonance
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(isSpace ? 800 : 1200 + Math.random() * 200, now);
-      osc.frequency.exponentialRampToValueAtTime(150, now + 0.04);
-
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-
-      // Noise burst for mechanical click snap
-      const bufferSize = this.ctx.sampleRate * 0.015;
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const output = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
+    switch (this.profile) {
+      case 'cherry-blue': {
+        // Clicky blue switch: sharp keystem snap + metallic ping + firm body
+        this.playSnapAt(now, 3200, isSpace ? 0.20 : 0.15, 0.012);
+        this.playPingAt(now, 1900 + Math.random() * 700, 0.05, 0.035);
+        this.playThockAt(now, isSpace ? 140 : 240, 85, isSpace ? 0.30 : 0.20, 0.05);
+        break;
       }
-
-      const whiteNoise = this.ctx.createBufferSource();
-      whiteNoise.buffer = buffer;
-
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.12, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-
-      whiteNoise.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-
-      osc.start(now);
-      whiteNoise.start(now);
-      osc.stop(now + 0.05);
-      whiteNoise.stop(now + 0.02);
-
-    } else if (this.profile === 'cherry-red') {
-      // Soft linear thock sound
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(isSpace ? 300 : 450 + Math.random() * 80, now);
-      osc.frequency.exponentialRampToValueAtTime(80, now + 0.035);
-
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.04);
-
-    } else if (this.profile === 'pop') {
-      // Bubble pop sound
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime( explainsFreq(isSpace, key), now);
-      osc.frequency.exponentialRampToValueAtTime(600, now + 0.03);
-
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.03);
-
-    } else if (this.profile === 'typewriter') {
-      // Classic metallic clack
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(isSpace ? 600 : 950 + Math.random() * 100, now);
-      osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
-
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.05);
-
-    } else {
-      // Tactile default
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(isSpace ? 500 : 850, now);
-      osc.frequency.exponentialRampToValueAtTime(120, now + 0.03);
-
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.03);
+      case 'cherry-red': {
+        // Linear red switch: soft low thock, almost no click
+        this.playSnapAt(now, 1500, isSpace ? 0.10 : 0.06, 0.009);
+        this.playThockAt(now, isSpace ? 130 : 210, 70, isSpace ? 0.28 : 0.18, 0.05, 'sine');
+        break;
+      }
+      case 'tactile': {
+        // Tactile brown switch: pronounced bump clack + warm body
+        this.playSnapAt(now, 2400, isSpace ? 0.16 : 0.11, 0.010);
+        this.playThockAt(now, isSpace ? 150 : 340, 90, isSpace ? 0.30 : 0.22, 0.05);
+        break;
+      }
+      case 'typewriter': {
+        // Metallic double-knock carriage clack
+        this.playSnapAt(now, 3800, 0.16, 0.012);
+        this.playSnapAt(now + 0.009, 3000, 0.12, 0.010);
+        this.playPingAt(now, 2600 + Math.random() * 500, 0.035, 0.03);
+        this.playThockAt(now, isSpace ? 160 : 260, 90, 0.24, 0.055, 'square');
+        break;
+      }
+      case 'pop': {
+        // Bubbly pop with a soft tail
+        const start = explainsFreq(isSpace, key);
+        this.playThockAt(now, start, 400, 0.14, 0.035, 'sine');
+        this.playPingAt(now + 0.004, start * 2.2, 0.06, 0.04);
+        break;
+      }
+      default:
+        break;
     }
+  }
+
+  // High-passed noise transient — the keystem/keycap snap
+  private playSnapAt(now: number, highpassHz: number, level: number, dur: number) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const frameCount = Math.max(2, Math.floor(ctx.sampleRate * dur));
+    const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frameCount; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * dur * 0.4));
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = highpassHz;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(level, now);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(now);
+    src.stop(now + dur + 0.005);
+  }
+
+  // Low body thock — the switch housing / plate resonance
+  private playThockAt(now: number, startFreq: number, endFreq: number, level: number, dur: number, type: OscillatorType = 'triangle') {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(endFreq, now + dur);
+    gain.gain.setValueAtTime(level, now);
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.005);
+  }
+
+  // Short metallic ring, used to brighten clicky/typewriter profiles
+  private playPingAt(now: number, freq: number, level: number, dur: number) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(level, now);
+    gain.gain.exponentialRampToValueAtTime(0.0005, now + dur);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + dur + 0.005);
   }
 
   public playError() {
