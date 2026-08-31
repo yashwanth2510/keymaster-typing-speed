@@ -102,7 +102,7 @@ export default function App() {
       </main>
 
       {/* Global Footer */}
-      <footer className="relative z-10 w-full border-t border-[#E5DFD5] bg-[#F7F4EF]/70 backdrop-blur-md py-6 text-center text-xs text-[#78726A] flex flex-col items-center gap-1.5">
+      <footer className="relative z-10 w-full border-t border-[#E5DFD5] bg-[#F7F4EF]/70 backdrop-blur-md py-6 text-center text-xs text-[#78726A] flex flex-col items-center gap-2.5">
         <p>KeyMaster • Master Touch Typing, Speed Tests, Row Tutorials & Arcade Games</p>
         <p className="text-[11px] text-[#78726A]">
           Created by{' '}
@@ -117,6 +117,22 @@ export default function App() {
             Yashwanth Tadikonda
           </a>
         </p>
+        <a
+          href="https://buymeacoffee.com/yashwanthtadikonda"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Buy me a coffee"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#FFDD00]/70 bg-[#FFDD00]/90 px-3 py-1.5 font-semibold text-[#0B0B0B] shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+            <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+            <line x1="6" x2="6" y1="2" y2="4" />
+            <line x1="10" x2="10" y1="2" y2="4" />
+            <line x1="14" x2="14" y1="2" y2="4" />
+          </svg>
+          Buy me a coffee
+        </a>
       </footer>
     </div>
   );
