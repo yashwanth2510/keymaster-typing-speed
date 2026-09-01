@@ -536,7 +536,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
               indentation are captured the same way they appear in the passage */}
           {settings.mode === 'code' ? (
             <textarea
-              ref={hiddenInputRef}
+              ref={hiddenInputRef as unknown as React.RefObject<HTMLTextAreaElement>}
               value={userInput}
               onChange={handleInputChange}
               spellCheck={false}
@@ -548,7 +548,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             />
           ) : (
             <input
-              ref={hiddenInputRef}
+              ref={hiddenInputRef as unknown as React.RefObject<HTMLInputElement>}
               type="text"
               value={userInput}
               onChange={handleInputChange}
