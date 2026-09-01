@@ -245,13 +245,18 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         }
       }
     } else {
-      // Default time mode — show a real English passage, sized so the timer
-      // (not the text) is the limiting factor for the chosen duration.
-      const passages = [...STORY_PASSAGES].sort(() => Math.random() - 0.5);
-      const passage = passages[0] || '';
-      const targetWords = Math.ceil(settings.timeLimit * 1.2);
-      const words = passage.split(/\s+/);
-      setTargetText(words.slice(0, Math.min(targetWords, words.length)).join(' '));
+      // Default time mode — show a real English passage sized so the timer
+      // (never the text) is the limiting factor. Chain whole shuffled passages
+      // until we reach a generous word target (~5 words per second), so even
+      // fast typists cannot finish early and every passage ends cleanly.
+      const targetWords = settings.timeLimit * 5;
+      const shuffled = [...STORY_PASSAGES].sort(() => Math.random() - 0.5);
+      const words: string[] = [];
+      for (const passage of shuffled) {
+        words.push(...passage.split(/\s+/));
+        if (words.length >= targetWords) break;
+      }
+      setTargetText(words.slice(0, targetWords).join(' '));
     }
 
     // Focus the hidden typing input — but never steal focus from the AI topic
