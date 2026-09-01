@@ -131,7 +131,9 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
       setTargetText(q.text);
     } else if (settings.mode === 'code') {
       const snippet = CODE_SNIPPETS[Math.floor(Math.random() * CODE_SNIPPETS.length)];
-      setTargetText(snippet.text.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim());
+      // Keep the real multi-line code (newlines + indentation) intact so the
+      // passage is typed as actual code, not flattened into one line.
+      setTargetText(snippet.text.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim());
     } else if (settings.mode === 'weak') {
       // Instant weak-key passage so there is no layout jump while the AI drill loads.
       setTargetText(getWeakKeysFallback(weakKeysList));
@@ -424,7 +426,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   }, [isActive]);
 
   // Handle keyboard inputs
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (isFinished) return;
 
     const val = e.target.value;
@@ -530,15 +532,34 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
           onClick={() => hiddenInputRef.current?.focus()}
           className="w-full max-w-4xl bg-white/80 border border-[#E5DFD5] rounded-3xl p-6 sm:p-10 shadow-[0_8px_32px_0_rgba(60,45,30,0.06)] backdrop-blur-2xl flex flex-col gap-6 relative cursor-text group transition-all duration-300 hover:border-[#DA6A45]/40 hover:shadow-lg"
         >
-          {/* Hidden Input element */}
-          <input
-            ref={hiddenInputRef}
-            type="text"
-            value={userInput}
-            onChange={handleInputChange}
-            className="absolute opacity-0 pointer-events-none"
-            autoFocus
-          />
+          {/* Hidden Input element — textarea for multi-line code mode so Enter and
+              indentation are captured the same way they appear in the passage */}
+          {settings.mode === 'code' ? (
+            <textarea
+              ref={hiddenInputRef as React.RefObject<HTMLTextAreaElement>}
+              value={userInput}
+              onChange={handleInputChange}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              autoComplete="off"
+              className="absolute opacity-0 pointer-events-none"
+              autoFocus
+            />
+          ) : (
+            <input
+              ref={hiddenInputRef}
+              type="text"
+              value={userInput}
+              onChange={handleInputChange}
+              spellCheck={false}
+              autoCapitalize="off"
+              autoCorrect="off"
+              autoComplete="off"
+              className="absolute opacity-0 pointer-events-none"
+              autoFocus
+            />
+          )}
 
           {/* Live Floating HUD Metrics */}
           <div className="flex items-center justify-between border-b border-[#E5DFD5] pb-4 text-xs sm:text-sm font-mono">
@@ -610,7 +631,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
                 <span>AI drill — targeting {weakKeysList.length} weak key{weakKeysList.length === 1 ? '' : 's'}</span>
               </div>
             )}
-            <div className="relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner">
+            <div className={`relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner ${settings.mode === 'code' ? 'whitespace-pre-wrap' : ''}`}>
               {targetText.split('').map((char, index) => {
                 const typed = userInput[index];
                 let charStyle = 'text-[#A0988E]'; // default future text
@@ -630,7 +651,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
                     {isCurrentCursor && (
                       <span className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-[#DA6A45] shadow-[0_0_8px_#DA6A45] animate-pulse rounded-full" />
                     )}
-                    {char === ' ' ? ' ' : char}
+                    {char}
                   </span>
                 );
               })}
