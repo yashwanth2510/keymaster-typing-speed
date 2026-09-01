@@ -3,7 +3,7 @@ import { TestControls } from './TestControls';
 import { ResultCard } from './ResultCard';
 import { Keyboard } from '../Keyboard';
 import { TestSettings, TestResult } from '../../types';
-import { COMMON_WORDS, QUOTES, CODE_SNIPPETS } from '../../lib/data';
+import { COMMON_WORDS, QUOTES, CODE_SNIPPETS, STORY_PASSAGES } from '../../lib/data';
 import { AlertTriangle, Sparkles } from 'lucide-react';
 import { soundEngine } from '../../lib/sound';
 import { saveTestResult } from '../../lib/storage';
@@ -245,9 +245,13 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
         }
       }
     } else {
-      // Default time mode
-      const shuffled = [...COMMON_WORDS].sort(() => Math.random() - 0.5);
-      setTargetText(shuffled.slice(0, 70).join(' '));
+      // Default time mode — show a real English passage, sized so the timer
+      // (not the text) is the limiting factor for the chosen duration.
+      const passages = [...STORY_PASSAGES].sort(() => Math.random() - 0.5);
+      const passage = passages[0] || '';
+      const targetWords = Math.ceil(settings.timeLimit * 1.2);
+      const words = passage.split(/\s+/);
+      setTargetText(words.slice(0, Math.min(targetWords, words.length)).join(' '));
     }
 
     // Focus the hidden typing input — but never steal focus from the AI topic

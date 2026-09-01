@@ -43,6 +43,39 @@ export const QUOTES = [
   }
 ];
 
+export const STORY_PASSAGES = [
+  "The old lighthouse keeper climbed the spiral stairs every evening to light the lamp. Tonight the sea was calm and the sky was clear, but he still made the climb, for the light had to burn no matter what. Ships far out on the dark water depended on his small flame.",
+  "Maya found a curious map folded inside an old library book. It showed streets that did not exist today and a park where a shopping mall now stood. She decided to follow it anyway, and by noon she was standing where the hidden garden had once been.",
+  "The bakery on the corner opened at dawn, and the smell of fresh bread drifted through the whole neighborhood. Old friends greeted one another over coffee while the baker slid warm loaves onto the wooden counter. It was a small place, but it held a thousand small joys.",
+  "Ravi saved his pocket money for a whole year to buy a second-hand telescope. On the first clear night he aimed it at the moon and for a long time he simply stared, amazed that the far side of the sky had been waiting for him all along.",
+  "The rain came suddenly and the street emptied in moments. A young woman opened her umbrella and smiled as a stranger shared it with her on the way to the station. Sometimes a short walk in the storm turns into a story you tell for years.",
+  "In the workshop behind his house, old Tomas kept every tool his father had ever owned. He polished the brass and sharpened the blades, not because he needed them, but because they carried the memory of hands that had worked before his.",
+  "Every morning the ferry carried the same passengers across the river. There was the doctor who read a paper, the teacher who graded essays, and the musician who hummed softly to himself. None of them spoke, yet they formed a quiet community of strangers.",
+  "The cat arrived at their door during the first snow and refused to leave. She was thin and proud and would not accept help unless it was offered on her own terms. By spring she was part of the family, sleeping on the warm ledge above the kitchen stove.",
+  "When the mountain trail came to a fork, the hikers disagreed. One path was short and steep, the other long and gentle. They chose the long one, and the extra hour brought them past a waterfall none of them had expected to see.",
+  "The village clock was older than anyone could remember. It struck the hours faithfully until one winter it finally stopped. A young clockmaker who had grown up listening to it spent weeks coaxing the old gears back to life, and the whole town cheered when it sang again.",
+  "Nora planted a single sunflower seed in the corner of the garden. Her children laughed that nothing would grow, but she watered it patiently every day. By late summer it rose taller than the fence, turning its great golden face toward the sun.",
+  "The boat builder carved his name beneath the deck of every vessel he made. His grandchildren asked why, and he said that a good craftsman always signs his work, so that generations later someone might wonder who held the chisel.",
+  "On market day the square came alive with color and noise. Farmers set out baskets of apples and pears, weavers hung bright cloth on lines, and children chased a loose dog between the stalls. It had been this way for a hundred years.",
+  "The librarian knew every reader by name and by taste. When a shy student asked for something new, she did not point to the shelves. She simply handed him a slim novel and said you will like this one. She was never wrong.",
+  "Sam's grandfather could fix almost anything with a length of wire and a steady hand. They spent a summer together mending radios and clocks and leaking taps, and Sam learned that patience was the most important tool in any box.",
+  "The secret garden behind the old manor had been locked for decades. When a young brave gardener finally turned the rusty key, she found roses as tall as the wall and a pond thick with golden fish. Some mysteries are worth the wait.",
+  "At dawn the fishermen hauled their nets aboard and sorted the shining catch. A storm was coming, but the sea was still generous this morning. They worked quickly, sharing stories and laughing against the rumble of far-off thunder.",
+  "The station master's pocket watch had stopped twice in the last month. He knew every train by the sound of its wheels, and he did not trust the new digital board. Like the sailors of old, he read the sky and the rails instead of the screen.",
+  "Priya decided to learn the guitar at forty, and her fingers ached for weeks. Yet every evening she sat by the window and practised the same three chords until the whole apartment filled with music. It is never too late to begin.",
+  "The small motorbike had carried four generations to school and work and weddings. When it finally coughed to a stop, the family did not scrap it. They rebuilt it together, remembering the journeys it had already made.",
+  "The baker's granddaughter did not like the early start, but she loved the dough. She learned that a good loaf needs time, warmth, and a patient touch, and that rushing only ever made flat, hard bread. Years later she opened her own little shop.",
+  "Two friends built a tree house at the edge of the wood in a single summer. They nailed every board and painted the walls sky blue. It tilted slightly and creaked in the wind, but it was the finest thing they had ever made.",
+  "The night guard walked his rounds through the quiet museum, past paintings and statues that had outlived their owners. In the stillness he felt the weight of all those years, and he understood that his job was simply to keep the story safe.",
+  "Elena's grandmother showed her how to make the perfect cup of tea, pouring from a great height so the air could cool it. It was a small ritual, but every evening they repeated it, and the ritual held their family together through the busy years.",
+  "The young runner trained before sunrise along the empty river path. Her coach said she was too small for the long distance, but she kept going, step by step, until one spring morning she crossed the finish line first.",
+  "When the power went out, the neighborhood gathered on the rooftops to watch the stars appear, one by one, in the dark city sky. Strangers introduced themselves and passed around a flask of coffee. The lights returned, but no one hurried back inside.",
+  "The zookeeper knew every animal by name and mood. The old elephant remembered her even after she returned from a long absence, lifting his trunk in greeting the moment she walked into the yard. Bonds built with patience do not fade.",
+  "A lost letter in a bottle washed up on the beach, written thirty years ago and never sent. The finder read it aloud to the fishermen, and together they imagined the young writer and the love that the ocean had carried so long.",
+  "The tailor's shop smelled of wool and thread. He mended torn sleeves and shortened hems, but his real gift was listening. People came for repairs and stayed to pour out their troubles, trusting the quiet man with the measuring tape.",
+  "It rained for nine days straight, and the river rose toward the bridge. The families carried their belongings to higher ground, helping one another through the mud. When the waters finally fell, they returned together to rebuild the little town.",
+];
+
 export const CODE_SNIPPETS = [
   // C Programming Language
   {
