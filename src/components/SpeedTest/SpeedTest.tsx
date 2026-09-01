@@ -51,7 +51,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
   // close-on-finish logic working unchanged for both generators.
   const isLoadingAIText = aiStatus === 'loading' || weakStatus === 'loading';
 
-  const hiddenInputRef = useRef<HTMLInputElement>(null);
+  const hiddenInputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const userInputRef = useRef(userInput);
@@ -536,7 +536,7 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
               indentation are captured the same way they appear in the passage */}
           {settings.mode === 'code' ? (
             <textarea
-              ref={hiddenInputRef as React.RefObject<HTMLTextAreaElement>}
+              ref={hiddenInputRef}
               value={userInput}
               onChange={handleInputChange}
               spellCheck={false}
