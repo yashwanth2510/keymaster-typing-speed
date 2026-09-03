@@ -13,6 +13,34 @@ interface SpeedTestProps {
   onUpdateSettings: (newSettings: Partial<TestSettings>) => void;
   weakKeysList: string[];
 }
+// Memoized single character of the passage. Props only change for the newly
+// typed char and the moved cursor, so React re-renders just those spans instead
+// of rebuilding thousands of spans on every keystroke (the main typing-lag fix).
+const PassageChar = React.memo(function PassageChar({
+  char,
+  state,
+  isCursor
+}: {
+  char: string;
+  state: 0 | 1 | 2;
+  isCursor: boolean;
+}) {
+  let charStyle = 'text-[#A0988E]'; // 0 = future text
+  if (state === 1) {
+    charStyle = 'text-[#DA6A45] font-semibold bg-[#DA6A45]/15 rounded-xs shadow-2xs';
+  } else if (state === 2) {
+    charStyle = 'text-rose-700 font-bold bg-rose-100 rounded-xs border-b-2 border-rose-500 shadow-2xs';
+  }
+
+  return (
+    <span className={`relative transition-all duration-75 ${charStyle}`}>
+      {isCursor && (
+        <span className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-[#DA6A45] shadow-[0_0_8px_#DA6A45] animate-pulse rounded-full" />
+      )}
+      {char}
+    </span>
+  );
+});
 
 export const SpeedTest: React.FC<SpeedTestProps> = ({
   settings,
@@ -643,25 +671,15 @@ export const SpeedTest: React.FC<SpeedTestProps> = ({
             <div className={`relative py-6 px-4 min-h-[170px] text-lg sm:text-2xl font-mono leading-relaxed select-none overflow-hidden bg-[#FAF8F5]/90 rounded-2xl border border-[#E5DFD5] backdrop-blur-md shadow-inner ${settings.mode === 'code' ? 'whitespace-pre-wrap' : ''}`}>
               {targetText.split('').map((char, index) => {
                 const typed = userInput[index];
-                let charStyle = 'text-[#A0988E]'; // default future text
-
-                if (typed !== undefined) {
-                  if (typed === char) {
-                    charStyle = 'text-[#DA6A45] font-semibold bg-[#DA6A45]/15 rounded-xs shadow-2xs';
-                  } else {
-                    charStyle = 'text-rose-700 font-bold bg-rose-100 rounded-xs border-b-2 border-rose-500 shadow-2xs';
-                  }
-                }
-
+                const state: 0 | 1 | 2 = typed === undefined ? 0 : typed === char ? 1 : 2;
                 const isCurrentCursor = index === userInput.length;
-
                 return (
-                  <span key={index} className={`relative transition-all duration-75 ${charStyle}`}>
-                    {isCurrentCursor && (
-                      <span className="absolute -left-0.5 top-0 bottom-0 w-0.5 bg-[#DA6A45] shadow-[0_0_8px_#DA6A45] animate-pulse rounded-full" />
-                    )}
-                    {char}
-                  </span>
+                  <PassageChar
+                    key={index}
+                    char={char}
+                    state={state}
+                    isCursor={isCurrentCursor}
+                  />
                 );
               })}
             </div>
